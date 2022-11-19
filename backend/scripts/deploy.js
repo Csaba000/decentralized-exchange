@@ -8,7 +8,7 @@ const hre = require("hardhat");
 
 async function main() {
 
-  const Factory = await hre.ethers.getContractFactory("UniswapV2Factory");
+  const Factory = await hre.ethers.getContractFactory("DexFactory");
   const factory = await Factory.deploy('0x25514986159Da06857D740D73c796074661D2E3C');
   await factory.deployed();
 
