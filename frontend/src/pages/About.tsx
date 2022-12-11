@@ -1,14 +1,22 @@
+import { useContext } from "react";
+import { CenterMid } from "../components/CardForSwap";
+import CenteredDiv from "../components/CenteredDiv";
+import { EtherContext } from "../context/EtherProvider";
+
 export default function About() {
+  const { address, balance } = useContext(EtherContext);
+  console.log(address, balance);
+
   return (
-    <div>
-      <h1
+    <CenteredDiv>
+      <p
         style={{
-          color: "black",
-          fontSize: "500px",
+          marginTop: "5rem",
         }}
       >
-        About
-      </h1>
-    </div>
+        ADDRESS: {address}
+      </p>
+      <p>BALANCE: {balance} GoerliETH</p>
+    </CenteredDiv>
   );
 }

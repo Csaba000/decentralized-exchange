@@ -1,7 +1,37 @@
+import { FC, useState, useContext, useEffect } from "react";
 import { Outlet, Link } from "react-router-dom";
 import logo from "../assets/logo.png";
+import { ethers } from "ethers";
+import { EtherContext } from "../context/EtherProvider";
 
 const Layout = () => {
+  const { address, balance } = useContext(EtherContext);
+
+  const [sAddress, setAddress] = address;
+  const [sBalance, setBalance] = balance;
+
+  useEffect(() => {
+    getWalletInfo();
+  }, []);
+
+  const getWalletInfo = async () => {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    let accounts = await provider.send("eth_requestAccounts", []);
+    let account = accounts[0];
+    setAddress(account);
+    const balance = await provider.getBalance(account);
+    const balanceInEth = ethers.utils.formatEther(balance);
+    setBalance(Math.round(balanceInEth * 10000) / 10000);
+  };
+
+  if (!sAddress) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen">
+        <p>Loading</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <nav className="bg-gray-800 px-2 sm:px-4 py-2.5 dark:bg-gray-900 fixed w-full z-20 top-0 left-0 border-b border-gray-200 dark:border-gray-600">
@@ -11,11 +41,21 @@ const Layout = () => {
           </a>
           <div className="flex md:order-2">
             <button
+              onClick={() => {
+                if(address){
+                  alert("Connected!");
+                  return
+                };
+                getWalletInfo();
+              }}
               type="button"
               className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-3 md:mr-0 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
             >
-              Connect to Metamask
+              {sAddress == undefined
+                ? "Connect Wallet"
+                : sAddress?.slice(0, 6) + "..." + sAddress?.slice(-4)}
             </button>
+
             <button
               data-collapse-toggle="navbar-sticky"
               type="button"
