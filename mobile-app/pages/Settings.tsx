@@ -39,7 +39,7 @@ const Settings = () => {
     init();
   }, [alchemyProvider]);
 
-  if (balance == undefined) {
+  if (alchemyProvider == undefined) {
     return (
       <View style={styles.centeredLoadingContainer}>
         <Text
@@ -51,10 +51,11 @@ const Settings = () => {
         >
           Loading...
         </Text>
-        <ActivityIndicator />
+        <ActivityIndicator size="large" />
       </View>
     );
   }
+
   return (
     <View style={styles.container}>
       <View style={styles.profileContainer}>
@@ -130,17 +131,21 @@ const Settings = () => {
               }}
             >
               <Text style={styles.profileBodyText}>Balance:</Text>
-              <Text
-                style={{
-                  bottom: 15,
-                  fontSize: 18,
-                  color: "#e3e2de",
-                  fontWeight: "bold",
-                }}
-              >
-                {" "}
-                {connectedWallet && connected ? "\n" + balance + " ETH" : " "}
-              </Text>
+              {balance != undefined ? (
+                <Text
+                  style={{
+                    bottom: 15,
+                    fontSize: 18,
+                    color: "#e3e2de",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {" "}
+                  {connectedWallet && connected ? "\n" + balance + " ETH" : " "}
+                </Text>
+              ) : (
+                <ActivityIndicator size="small" color="#e3e2de" />
+              )}
             </View>
           </View>
         </View>

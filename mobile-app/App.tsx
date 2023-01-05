@@ -7,6 +7,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { IAsyncStorage } from "./AsyncStorage";
 import BottomTab from "./components/BottomTab";
 import { NavigationContainer } from "@react-navigation/native";
+import { StatusBar } from "expo-status-bar";
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
     >
       <NavigationContainer>
         <BottomTab />
+        <StatusBar style="auto" />
       </NavigationContainer>
     </WalletConnectProvider>
   );

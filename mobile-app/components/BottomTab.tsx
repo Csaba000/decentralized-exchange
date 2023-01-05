@@ -3,22 +3,58 @@ import React from "react";
 import Home from "../pages/Home";
 import Settings from "../pages/Settings";
 import Icon from "react-native-vector-icons/Ionicons";
+import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import Swap from "../pages/Swap";
+import Liquidity from "../pages/Liquidity";
 
 const Tab = createBottomTabNavigator();
 
-const screenOptions = {
-  style: {
-    backgroundColor: "#fff",
-  },
+const HomeNav = createMaterialTopTabNavigator();
+
+const HomeNavigator = () => {
+  return (
+    <HomeNav.Navigator
+      screenOptions={{
+        tabBarStyle: {
+          paddingTop: 40,
+          backgroundColor: "#333",
+          
+        },
+        tabBarLabelStyle: {
+          color: "white",
+        },
+        tabBarIndicatorStyle: {
+          backgroundColor: "white",
+        },
+      }}
+    >
+      <HomeNav.Screen name="Swap" component={Swap} />
+      <HomeNav.Screen name="Liquidity" component={Liquidity} />
+    </HomeNav.Navigator>
+  );
 };
 
 const MyTabs = () => {
   return (
-    <Tab.Navigator>
+    <Tab.Navigator
+      screenOptions={{
+        tabBarStyle: {
+          height: 60,
+          backgroundColor: "#333",
+          
+        },
+        tabBarActiveTintColor: 'white',
+        tabBarLabelStyle: {
+          color: "white",
+        },
+        tabBarInactiveBackgroundColor: "#333",
+      }}
+    >
       <Tab.Screen
         name="Home"
-        component={Home}
+        component={HomeNavigator}
         options={{
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Icon name="home" color={color} size={size} />
           ),
@@ -28,6 +64,7 @@ const MyTabs = () => {
         name="Settings"
         component={Settings}
         options={{
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Icon name="settings" color={color} size={size} />
           ),
