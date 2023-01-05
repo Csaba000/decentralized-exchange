@@ -7,13 +7,13 @@ const useSendTransaction = () => {
   const connector = useWalletConnect();
 
   const sendTransaction = async () => {
-    const Alchemy = new ethers.providers.JsonRpcProvider(
+    const AlchemyProvider = new ethers.providers.JsonRpcProvider(
       "https://eth-goerli.g.alchemy.com/v2/bnqXJ3kma1bUnhQmSTmGYzp96ch3kpVh"
     );
 
     const contractAddress = "0x23d6D5F080B6bBd171C8e99301be8BCDb85c874e";
 
-    const contract = new ethers.Contract(contractAddress, abi, Alchemy);
+    const contract = new ethers.Contract(contractAddress, abi, AlchemyProvider);
 
     const iFeeToo = new ethers.utils.Interface(abi);
 

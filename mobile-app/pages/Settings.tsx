@@ -1,32 +1,60 @@
-import { ethers } from "ethers";
-import { useEffect, useState } from "react";
-import abi from "../contract/abi.json";
 import { useWalletConnect } from "@walletconnect/react-native-dapp";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  Button,
   View,
   StyleSheet,
   Text,
   TouchableOpacity,
   Image,
-  ToastAndroid,
+  ActivityIndicator,
 } from "react-native";
 import useConnectToMetamask from "../ui-logic/connectWallet";
 import * as Clipboard from "expo-clipboard";
 import { notificationMessage } from "../utils/notifications";
+import Icon from "react-native-vector-icons/Ionicons";
+import useAlchemyProvider from "../ui-logic/useAlchemy";
+import { useEffect, useState } from "react";
+import { ethers } from "ethers";
 
 const Settings = () => {
   const { connect, connectedWallet, setConnectedWallet } =
     useConnectToMetamask();
   const { connected, accounts } = useWalletConnect();
   const connector = useWalletConnect();
-  const [copiedText, setCopiedText] = useState("");
+  const { alchemyProvider, getBalance } = useAlchemyProvider();
+  const [balance, setBalance] = useState<any>();
 
   const copyToClipboard = async () => {
     await Clipboard.setStringAsync(accounts[0]);
   };
 
+  useEffect(() => {
+    const init = async () => {
+      if (alchemyProvider != undefined && connected && connectedWallet) {
+        const bal = await getBalance();
+        const balInEth = ethers.utils.formatUnits(bal).substring(0, 5);
+        setBalance(balInEth);
+      }
+    };
+    init();
+  }, [alchemyProvider]);
+
+  if (balance == undefined) {
+    return (
+      <View style={styles.centeredLoadingContainer}>
+        <Text
+          style={{
+            fontSize: 30,
+            fontWeight: "bold",
+            color: "#e3e2de",
+          }}
+        >
+          Loading...
+        </Text>
+        <ActivityIndicator />
+      </View>
+    );
+  }
   return (
     <View style={styles.container}>
       <View style={styles.profileContainer}>
@@ -60,7 +88,10 @@ const Settings = () => {
                   alignItems: "center",
                 }}
               >
-                <Text style={styles.profileBodyText}>Wallet Address:</Text>
+                <Text style={styles.profileBodyText}>
+                  Wallet Address:{" "}
+                  <Icon name="md-copy-outline" size={20} color="#e3e2de" />
+                </Text>
               </View>
               <Text
                 style={{
@@ -91,6 +122,26 @@ const Settings = () => {
                 </View>
               )}
             </TouchableOpacity>
+
+            <View
+              style={{
+                marginTop: 5,
+                alignItems: "center",
+              }}
+            >
+              <Text style={styles.profileBodyText}>Balance:</Text>
+              <Text
+                style={{
+                  bottom: 15,
+                  fontSize: 18,
+                  color: "#e3e2de",
+                  fontWeight: "bold",
+                }}
+              >
+                {" "}
+                {connectedWallet && connected ? "\n" + balance + " ETH" : " "}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -99,7 +150,11 @@ const Settings = () => {
             <TouchableOpacity
               style={styles.connectButton}
               onPress={() => {
-                connect();
+                if (connectedWallet && connected) {
+                  notificationMessage("Already connected", "#333", 2000);
+                } else {
+                  connect();
+                }
               }}
             >
               <Text style={styles.connectedText}>
@@ -126,6 +181,11 @@ const Settings = () => {
 };
 
 const styles = StyleSheet.create({
+  centeredLoadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   container: {
     height: "100%",
     backgroundColor: "#fff",
