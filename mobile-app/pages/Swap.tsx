@@ -1,20 +1,41 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TextInput,
-  Button,
   TouchableOpacity,
-  Modal,
-  Pressable,
-  ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { Picker, onOpen } from "react-native-actions-sheet-picker";
 import SelectDropdown from "react-native-select-dropdown";
 import Icon from "react-native-vector-icons/Ionicons";
+import axios from "axios";
+import useGetTokenData from "../ui-logic/useGetTokenData";
+
+type Token = {
+  name: string;
+  symbol: string;
+  address: string;
+};
 
 const Swap = () => {
+  const { data, tokens, getTokenNames } = useGetTokenData();
+
+  if (!data) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.cardContainer}>
@@ -26,10 +47,10 @@ const Swap = () => {
             <SelectDropdown
               rowTextStyle={styles.dropdownRowText}
               disableAutoScroll={true}
-              defaultButtonText="ETH"
+              defaultButtonText={data[0].symbol}
               buttonStyle={styles.dropdownButtonHalf}
               buttonTextStyle={styles.dropdownButtonText}
-              data={["ETH", "BTC", "USDT", "BNB", "ADA", "XRP", "DOGE", "DOT"]}
+              data={getTokenNames()}
               onSelect={(selectedItem, index) => {
                 console.log(selectedItem, index);
               }}
@@ -66,10 +87,10 @@ const Swap = () => {
               rowTextStyle={styles.dropdownRowText}
               dropdownStyle={styles.dropdownStyle}
               disableAutoScroll={true}
-              defaultButtonText="WETH"
+              defaultButtonText={data[1].symbol}
               buttonStyle={styles.dropdownButtonHalf}
               buttonTextStyle={styles.dropdownButtonText}
-              data={["ETH", "BTC", "USDT", "BNB", "ADA", "XRP", "DOGE", "DOT"]}
+              data={getTokenNames()}
               onSelect={(selectedItem, index) => {
                 console.log(selectedItem, index);
               }}

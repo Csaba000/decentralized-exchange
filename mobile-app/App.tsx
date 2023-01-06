@@ -8,6 +8,7 @@ import { IAsyncStorage } from "./AsyncStorage";
 import BottomTab from "./components/BottomTab";
 import { NavigationContainer } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
+import Header from "./components/Header";
 
 export default function App() {
   return (

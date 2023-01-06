@@ -15,15 +15,18 @@ import SelectDropdown from "react-native-select-dropdown";
 import Icon from "react-native-vector-icons/Ionicons";
 import Liquidity from "./Liquidity";
 import Swap from "./Swap";
-
+import Header from "../components/Header";
 
 const Home = () => {
   const [selected, setSelected] = useState(undefined);
 
   return (
     <View style={styles.container}>
-      <View style={styles.cardContainer}>
-        <Text>Hello</Text>
+      <Header title="Dex" />
+      <View style={styles.pageContainer}>
+        <View style={styles.cardContainer}>
+          <Text>Hello</Text>
+        </View>
       </View>
     </View>
   );
@@ -33,8 +36,14 @@ export default Home;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    marginTop: 30,
     backgroundColor: "#grey",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pageContainer: {
+    width: "100%",
+    marginTop: 50,
     alignItems: "center",
     justifyContent: "center",
   },
