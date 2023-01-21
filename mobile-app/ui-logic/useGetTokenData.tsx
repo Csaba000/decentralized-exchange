@@ -9,11 +9,11 @@ type Token = {
 
 const useGetTokenData = () => {
   const [data, setData] = useState<Token[]>();
-  const [tokens, setTokens] = useState([]);
+  let tokens: any = [];
 
   useEffect(() => {
     axios
-      .get("https://potent-standing-cloak.glitch.me/tokenInfo")
+      .get("http://192.168.1.180:3000/tokenInfo")
       .then(function (response) {
         setData(response.data);
       })
@@ -23,14 +23,19 @@ const useGetTokenData = () => {
   }, []);
 
   const getTokenNames = () => {
-    let tokenNames = [];
     for (let i = 0; i < data!.length; i++) {
-      tokenNames.push(data![i].symbol.toUpperCase());
+      tokens.push({
+        id: i,
+        symbol: data![i].symbol,
+        address: data![i].address,
+      });
     }
-    return tokenNames;
+    return tokens;
   };
 
-  return { data, tokens, getTokenNames };
+  
+
+  return { data, getTokenNames };
 };
 
 export default useGetTokenData;

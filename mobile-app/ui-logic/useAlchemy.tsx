@@ -21,6 +21,8 @@ const useAlchemyProvider = () => {
     return await alchemyProvider.getBalance(accounts[0]!);
   };
 
+  
+
   return { alchemyProvider, getBalance };
 };
 
