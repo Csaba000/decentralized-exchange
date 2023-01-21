@@ -13,7 +13,7 @@ const useGetTokenData = () => {
 
   useEffect(() => {
     axios
-      .get("http://192.168.1.32:3000/tokenInfo")
+      .get("https://potent-standing-cloak.glitch.me/tokenInfo")
       .then(function (response) {
         setData(response.data);
       })

@@ -13,15 +13,11 @@ import Icon from "react-native-vector-icons/Ionicons";
 import axios from "axios";
 import useGetTokenData from "../ui-logic/useGetTokenData";
 
-type Token = {
-  name: string;
-  symbol: string;
-  address: string;
-};
-
 const Swap = () => {
   const { data, tokens, getTokenNames } = useGetTokenData();
 
+  console.log();
+  
   if (!data) {
     return (
       <View
@@ -61,7 +57,6 @@ const Swap = () => {
                 return item;
               }}
               dropdownStyle={styles.dropdownStyle}
-              searchInputStyle={styles.dropdownSearchInput}
               renderDropdownIcon={() => {
                 return (
                   <Icon
