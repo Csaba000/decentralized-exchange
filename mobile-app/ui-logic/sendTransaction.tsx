@@ -1,6 +1,6 @@
 import { useWalletConnect } from "@walletconnect/react-native-dapp";
 import { ethers } from "ethers";
-import abi from "../contract/abi.json";
+import abiFactory from "../contract/abiFactory.json";
 
 const useSendTransaction = () => {
   const { accounts } = useWalletConnect();
@@ -13,11 +13,11 @@ const useSendTransaction = () => {
 
     const contractAddress = "0x23d6D5F080B6bBd171C8e99301be8BCDb85c874e";
 
-    const contract = new ethers.Contract(contractAddress, abi, AlchemyProvider);
+    const contract = new ethers.Contract(contractAddress, abiFactory, AlchemyProvider);
 
     
 
-    const iFeeToo = new ethers.utils.Interface(abi);
+    const iFeeToo = new ethers.utils.Interface(abiFactory);
 
     const encodedAbi = iFeeToo.encodeFunctionData("setFeeToSetter", [
       "0xc36ADD79C8B61Dc73f4E347A147750F752E84ccC",

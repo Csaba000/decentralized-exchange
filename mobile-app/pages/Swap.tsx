@@ -6,38 +6,95 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
 } from "react-native";
 import SelectDropdown from "react-native-select-dropdown";
 import Icon from "react-native-vector-icons/Ionicons";
 import useAlchemyProvider from "../ui-logic/useAlchemy";
 import useGetTokenData from "../ui-logic/useGetTokenData";
 import abiErc20 from "../contract/abiErc20.json";
-import abi from "../contract/abi.json";
+import abiPool from "../contract/abiPool.json";
 import { useWalletConnect } from "@walletconnect/react-native-dapp";
+import useGetPairAddress from "../ui-logic/useGetPairAddress";
+import LoadingIndicator from "../components/LoadingIndicator";
+import { BigNumber } from "bignumber.js";
+import useRouterContract from "../ui-logic/useRouterContract";
 
 const Swap = () => {
   const { data, getTokenNames } = useGetTokenData();
   const { alchemyProvider, getBalance } = useAlchemyProvider();
+  const { data2, getPairAddress } = useGetPairAddress();
   const { accounts } = useWalletConnect();
+  const { routerContract } = useRouterContract();
+
   const [fromTokenBalance, setFromTokenBalance] = useState("");
+
+  const [fromTokenIndex, setFromTokenIndex] = useState(0);
+  const [toTokenIndex, setToTokenIndex] = useState(0);
+
   const [toTokenBalance, setToTokenBalance] = useState("");
+
+  const [poolAddress, setPoolAddress] = useState("");
   //first inputField => true, second inputField => false
   const [inputState, setInputState] = useState(false);
 
+  useEffect(() => {
+    if (data) {
+      getPairAddress(
+        data![fromTokenIndex].address,
+        data![toTokenIndex].address
+      );
+    }
+  }, [toTokenIndex, fromTokenIndex]);
+
   if (!data) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    <LoadingIndicator />;
   }
+
+  if (!data2) {
+    <LoadingIndicator />;
+  }
+
+  const getReserves = async () => {
+    if (data2) {
+      const contract = new ethers.Contract(data2, abiPool, alchemyProvider);
+      const reserves = await contract.getReserves();
+      return reserves;
+    }
+  };
+
+  function sort(tokenA: string, tokenB: string): [string, string, boolean] {
+    var a = new BigNumber(tokenA.slice(2), 16);
+    var b = new BigNumber(tokenB.slice(2), 16);
+    if (a.lt(b)) {
+      return [tokenA, tokenB, false];
+    } else {
+      return [tokenB, tokenA, true];
+    }
+  }
+
+  // const calculateSecondInput = async (text: string) => {
+  //   const amounts = await getReserves();
+  //   var reserve1: BigNumber = amounts[0];
+  //   var reserve2: BigNumber = amounts[1];
+    
+  //   const tokenIn = getTokenAddress(fromTokenIndex);
+  //   const tokenOut = getTokenAddress(toTokenIndex);
+
+  //   console.log(reserve1, reserve2);
+
+  //   var token1,
+  //     token2,
+  //     swapped = sort(tokenIn, tokenOut);
+
+  //   if (swapped) {
+  //     if (routerContract) {
+  //       routerContract.getAmountOut(
+
+  //       );
+  //     }
+  //   } else {
+  //   }
+  // };
 
   const tokenNames = getTokenNames().map((token: any) => token.symbol);
   const tokenAddresses = getTokenNames().map((token: any) => token.address);
@@ -67,34 +124,11 @@ const Swap = () => {
     );
 
     const balanceOf = await contract.balanceOf(accounts[0]!);
-    const balInEth = ethers.utils.formatUnits(balanceOf).substring(0, 5);
+    const balInEth = ethers.utils
+      .parseUnits(balanceOf.toString(), 18)
+      .toString();
 
     from ? setFromTokenBalance(balInEth) : setToTokenBalance(balInEth);
-  };
-
-  const calculateSecondInput = async (firstInput: string) => {
-    const contractAddress = "0x23d6D5F080B6bBd171C8e99301be8BCDb85c874e";
-
-    const contract = new ethers.Contract(contractAddress, abi, alchemyProvider);
-
-    const iFeeToo = new ethers.utils.Interface(abi);
-
-    const encodedAbi = iFeeToo.encodeFunctionData("setFeeToSetter", [
-      "0xc36ADD79C8B61Dc73f4E347A147750F752E84ccC",
-    ]);
-
-    const tx = {
-      from: accounts[0],
-      to: contractAddress,
-      data: encodedAbi,
-    };
-
-    try {
-      const send = connector.sendTransaction(tx);
-      console.log(await send);
-    } catch (error) {
-      console.log(error);
-    }
   };
 
   return (
@@ -116,6 +150,7 @@ const Swap = () => {
               buttonTextStyle={styles.dropdownButtonText}
               data={tokenNames}
               onSelect={async (selectedItem, index) => {
+                setFromTokenIndex(index);
                 await getTokenBalance(index, true);
               }}
               buttonTextAfterSelection={(selectedItem, index) => {
@@ -145,7 +180,7 @@ const Swap = () => {
             <TextInput
               onChangeText={(text) => {
                 setInputState(true);
-                // calculateSecondInput(text);
+                // calculateSecondInput();
               }}
               style={styles.textInput}
               placeholder="0.00"
@@ -171,6 +206,7 @@ const Swap = () => {
                 buttonTextStyle={styles.dropdownButtonText}
                 data={tokenNames}
                 onSelect={async (selectedItem, index) => {
+                  setToTokenIndex(index);
                   await getTokenBalance(index, false);
                 }}
                 buttonTextAfterSelection={(selectedItem, index) => {

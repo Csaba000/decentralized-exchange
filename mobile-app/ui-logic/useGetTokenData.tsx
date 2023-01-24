@@ -23,6 +23,7 @@ const useGetTokenData = () => {
   }, []);
 
   const getTokenNames = () => {
+    if(!data) return ([])
     for (let i = 0; i < data!.length; i++) {
       tokens.push({
         id: i,
