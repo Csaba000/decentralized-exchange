@@ -28,9 +28,9 @@ export async function connectToCluster(uri) {
 // }
 export async function createTokenDocument(collection) {
   const tokenDocument = {
-    name: "Ethereum",
-    symbol: "ETH",
-    address: "",
+    name: "Wrapped BTC (WBTC)",
+    symbol: "WBTC",
+    address: "0xC04B0d3107736C32e19F1c62b2aF67BE61d63a05",
   };
 
   await collection.insertOne(tokenDocument);

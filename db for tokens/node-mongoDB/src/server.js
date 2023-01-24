@@ -1,7 +1,8 @@
-import express from 'express';
-import { MongoClient } from 'mongodb';
-import { config } from 'dotenv';
-import cors from 'cors';
+import express from "express";
+import { MongoClient } from "mongodb";
+import { config } from "dotenv";
+import cors from "cors";
+import bodyParser from "body-parser";
 
 config();
 console.log(process.env.DB_URI);
@@ -10,48 +11,84 @@ app.use(cors());
 
 const url = process.env.DB_URI;
 console.log(url);
-const dbName = 'DexInfo';
+const dbName = "DexInfo";
 
 // Connect to the database
-MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true }, (error, client) => {
-  if (error) {
-    console.error("HIBA",error);
-    return;
+MongoClient.connect(
+  url,
+  { useNewUrlParser: true, useUnifiedTopology: true },
+  (error, client) => {
+    if (error) {
+      console.error("HIBA", error);
+      return;
+    }
+
+    console.log("Successfully connected to MongoDB");
+
+    // Set the client reference to the database
+    const db = client.db(dbName);
+    console.log(db);
+    // Add a GET route that retrieves all documents in the 'items' collection
+    app.get("/tokenInfo", (req, res) => {
+      db.collection("tokens")
+        .find()
+        .toArray((error, items) => {
+          if (error) {
+            console.error(error);
+            res.status(500).send(error);
+            return;
+          }
+
+          res.send(items);
+        });
+    });
+
+    app.get("/poolsInfo", (req, res) => {
+      db.collection("pools")
+        .find()
+        .toArray((error, items) => {
+          if (error) {
+            console.error(error);
+            res.status(500).send(error);
+            return;
+          }
+
+          res.send(items);
+        });
+    });
+
+    app.use(bodyParser.json());
+
+    app.get("/poolAddress", (req, res) => {
+      console.log(req.query);
+      let token_addr1 = req.query.token_addr1;
+      let token_addr2 = req.query.token_addr2;
+      console.log(token_addr1, token_addr2);
+      if(token_addr1 === undefined || token_addr2 === undefined) {
+        res.status(400).send("Bad request");
+        return;
+      }
+
+      const query = {
+        pair1_address: token_addr1,
+        pair2_address: token_addr2,
+      };
+      db.collection("pools")
+        .find(query)
+        .toArray(function (err, docs) {
+          if (err) {
+            console.error(err);
+            res.status(500).send(err);
+          }
+          if (docs.length !== 0) {
+            res.send(docs[0].address);
+          }
+        });
+    });
+
+    // Start the server
+    app.listen(3000, () => {
+      console.log("Server listening on port 3000");
+    });
   }
-
-  console.log('Successfully connected to MongoDB');
-
-  // Set the client reference to the database
-  const db = client.db(dbName);
-  console.log(db);
-  // Add a GET route that retrieves all documents in the 'items' collection
-  app.get('/tokenInfo', (req, res) => {
-    db.collection('tokens').find().toArray((error, items) => {
-      if (error) {
-        console.error(error);
-        res.status(500).send(error);
-        return;
-      }
-
-      res.send(items);
-    });
-  });
-
-  app.get('/poolsInfo', (req, res) => {
-    db.collection('pools').find().toArray((error, items) => {
-      if (error) {
-        console.error(error);
-        res.status(500).send(error);
-        return;
-      }
-
-      res.send(items);
-    });
-  });
-
-
-  // Start the server
-  app.listen(3000, () => {
-    console.log('Server listening on port 3000');
-  });
-});
+);
