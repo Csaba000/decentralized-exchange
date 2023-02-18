@@ -14,7 +14,7 @@ import useGetTokenData from "../ui-logic/useGetTokenData";
 import abiErc20 from "../contract/abiErc20.json";
 import abiPool from "../contract/abiPool.json";
 import { useWalletConnect } from "@walletconnect/react-native-dapp";
-import useGetPairAddress from "../ui-logic/useGetPairAddress";
+import useInitAll from "../ui-logic/useGetPairAddress";
 import LoadingIndicator from "../components/LoadingIndicator";
 import { BigNumber } from "bignumber.js";
 import useRouterContract from "../ui-logic/useRouterContract";
@@ -22,9 +22,15 @@ import useRouterContract from "../ui-logic/useRouterContract";
 const Swap = () => {
   const { data, getTokenNames } = useGetTokenData();
   const { alchemyProvider, getBalance } = useAlchemyProvider();
-  const { data2, getPairAddress } = useGetPairAddress();
+  const {
+    data2,
+    poolContract,
+    routerContract,
+    getPairAddress,
+    getRouterAddress,
+  } = useInitAll();
   const { accounts } = useWalletConnect();
-  const { routerContract } = useRouterContract();
+  // const { routerContract } = useRouterContract();
 
   const [fromTokenBalance, setFromTokenBalance] = useState("");
 
@@ -37,30 +43,21 @@ const Swap = () => {
   //first inputField => true, second inputField => false
   const [inputState, setInputState] = useState(false);
 
+  const [secondText, setSecondText] = useState("");
+  const [firstText, setFirstText] = useState("");
+
+  const [getAmountOut, setAmountOut] = useState(0);
+  const [getAmountIn, setAmountIn] = useState(0);
+
   useEffect(() => {
     if (data) {
       getPairAddress(
         data![fromTokenIndex].address,
         data![toTokenIndex].address
       );
+      getRouterAddress();
     }
   }, [toTokenIndex, fromTokenIndex]);
-
-  if (!data) {
-    <LoadingIndicator />;
-  }
-
-  if (!data2) {
-    <LoadingIndicator />;
-  }
-
-  const getReserves = async () => {
-    if (data2) {
-      const contract = new ethers.Contract(data2, abiPool, alchemyProvider);
-      const reserves = await contract.getReserves();
-      return reserves;
-    }
-  };
 
   function sort(tokenA: string, tokenB: string): [string, string, boolean] {
     var a = new BigNumber(tokenA.slice(2), 16);
@@ -72,36 +69,81 @@ const Swap = () => {
     }
   }
 
-  // const calculateSecondInput = async (text: string) => {
-  //   const amounts = await getReserves();
-  //   var reserve1: BigNumber = amounts[0];
-  //   var reserve2: BigNumber = amounts[1];
-    
-  //   const tokenIn = getTokenAddress(fromTokenIndex);
-  //   const tokenOut = getTokenAddress(toTokenIndex);
+  const calculateSecondInput = async (text: string) => {
+    const amounts = await poolContract.getReserves();
 
-  //   console.log(reserve1, reserve2);
+    var reserve1: BigNumber = amounts[0];
+    var reserve2: BigNumber = amounts[1];
 
-  //   var token1,
-  //     token2,
-  //     swapped = sort(tokenIn, tokenOut);
+    const tokenIn = getTokenAddress(fromTokenIndex);
+    const tokenOut = getTokenAddress(toTokenIndex);
 
-  //   if (swapped) {
-  //     if (routerContract) {
-  //       routerContract.getAmountOut(
+    var token1,
+      token2,
+      swapped = sort(tokenIn, tokenOut);
 
-  //       );
-  //     }
-  //   } else {
-  //   }
-  // };
+    try {
+      if (swapped) {
+        const amountOut = await routerContract.getAmountOut(
+          text,
+          reserve2,
+          reserve1
+        );
 
+        setAmountOut(amountOut);
+      } else {
+        setAmountOut(
+          await routerContract.getAmountOut(text, reserve1, reserve2)
+        );
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const calculateFirstInput = async (text: string) => {
+    const amounts = await poolContract.getReserves();
+
+    var reserve1: BigNumber = amounts[0];
+    var reserve2: BigNumber = amounts[1];
+
+    const tokenIn = getTokenAddress(toTokenIndex);
+    const tokenOut = getTokenAddress(fromTokenIndex);
+
+    var token1,
+      token2,
+      swapped = sort(tokenIn, tokenOut);
+
+    try {
+      if (swapped) {
+        const amountIn = await routerContract.getAmountIn(
+          text,
+          reserve2,
+          reserve1
+        );
+
+        setAmountIn(amountIn);
+      } else {
+        setAmountIn(await routerContract.getAmountIn(text, reserve1, reserve2));
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  // MEGY MINDEN GG WP, KELL SWAP MEG LIQUIDITY PROVIDE
   const tokenNames = getTokenNames().map((token: any) => token.symbol);
   const tokenAddresses = getTokenNames().map((token: any) => token.address);
   const tokenIds = getTokenNames().map((token: any) => token.id);
+  const tokenDecimals = getTokenNames().map((token: any) => token.decimals);
 
   const getTokenAddress = (tokenId: number) => {
     return tokenAddresses[tokenIds.indexOf(tokenId)];
+  };
+
+  //TODO - get decimals from token and format accordingly
+  const getTokenDecimals = (tokenId: number) => {
+    return tokenDecimals[tokenIds.indexOf(tokenId)];
   };
 
   const getTokenBalance = async (tokenId: number, from: boolean) => {
@@ -125,7 +167,7 @@ const Swap = () => {
 
     const balanceOf = await contract.balanceOf(accounts[0]!);
     const balInEth = ethers.utils
-      .parseUnits(balanceOf.toString(), 18)
+      .parseUnits(balanceOf.toString(), 10)
       .toString();
 
     from ? setFromTokenBalance(balInEth) : setToTokenBalance(balInEth);
@@ -178,9 +220,11 @@ const Swap = () => {
             </Text>
 
             <TextInput
-              onChangeText={(text) => {
+              value={!inputState ? getAmountIn.toString() : firstText}
+              onChangeText={async (text) => {
                 setInputState(true);
-                // calculateSecondInput();
+                setFirstText(text);
+                await calculateSecondInput(text);
               }}
               style={styles.textInput}
               placeholder="0.00"
@@ -233,9 +277,11 @@ const Swap = () => {
               Balance: {toTokenBalance}
             </Text>
             <TextInput
-              onChangeText={(text) => {
+              value={inputState ? getAmountOut.toString() : secondText}
+              onChangeText={async (text) => {
                 setInputState(false);
-                // calculateFirstInput(text);
+                setSecondText(text);
+                await calculateFirstInput(text);
               }}
               style={styles.textInput}
               placeholder="0.00"

@@ -11,7 +11,7 @@ const useSendTransaction = () => {
       "https://eth-goerli.g.alchemy.com/v2/bnqXJ3kma1bUnhQmSTmGYzp96ch3kpVh"
     );
 
-    const contractAddress = "0x23d6D5F080B6bBd171C8e99301be8BCDb85c874e";
+    const contractAddress = "0xA16A20D39409112077d98c9Dc0b6f7ff93Cb059D";
 
     const contract = new ethers.Contract(contractAddress, abiFactory, AlchemyProvider);
 

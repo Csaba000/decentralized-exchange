@@ -5,6 +5,7 @@ type Token = {
   name: string;
   symbol: string;
   address: string;
+  decimals: number;
 };
 
 const useGetTokenData = () => {
@@ -23,18 +24,18 @@ const useGetTokenData = () => {
   }, []);
 
   const getTokenNames = () => {
-    if(!data) return ([])
+    if (!data) return [];
+
     for (let i = 0; i < data!.length; i++) {
       tokens.push({
         id: i,
         symbol: data![i].symbol,
         address: data![i].address,
+        decimals: data![i].decimals,
       });
     }
     return tokens;
   };
-
-  
 
   return { data, getTokenNames };
 };

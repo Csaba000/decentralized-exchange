@@ -7,19 +7,15 @@ const useRouterContract = () => {
   const [routerContract, setRouterContract] = useState<Contract>();
   const { alchemyProvider } = useAlchemyProvider();
 
-  const routerAddress = "0xBf15E7891aa8BDE426032810811cC39990e75452";
+  const routerAddress = "0xE4c76722C7c5a60A62F6aF1Ec7C3C2E303c0dA4f";
 
   useEffect(() => {
-    const init = async () => {
-      const contract = new ethers.Contract(
-        routerAddress,
-        abiRouter,
-        alchemyProvider
-      );
-
-      setRouterContract(contract);
-    };
-    init();
+    const contract = new ethers.Contract(
+      routerAddress,
+      abiRouter,
+      alchemyProvider
+    );
+    setRouterContract(contract);
   }, []);
 
   return {
