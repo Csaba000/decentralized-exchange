@@ -9,7 +9,7 @@ const hre = require("hardhat");
 async function main() {
 
   const Router = await hre.ethers.getContractFactory("DexRouter");
-  const router = await Router.deploy('0x23d6D5F080B6bBd171C8e99301be8BCDb85c874e',
+  const router = await Router.deploy('0xA16A20D39409112077d98c9Dc0b6f7ff93Cb059D',
   '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6');
   await router.deployed();
 

@@ -2,6 +2,7 @@ pragma solidity >=0.5.0;
 
 // import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "../../v2-core/interfaces/IDexPair.sol";
+import "../../v2-core/interfaces/IDexPair.sol";
 
 import "./SafeMath.sol";
 
@@ -35,7 +36,7 @@ library DexLibrary {
                         hex"ff",
                         factory,
                         keccak256(abi.encodePacked(token0, token1)),
-                        hex"1422e698b60c9927c05d7395ff8f404c87863b2d19f8b456b5a51b99ebe34efc" // init code hash
+                        hex"512159dfae552a0b3820e459945242b04e0df84253629b2458ada7dab2b2ee02" // init code hash
                     )
                 )
             )
