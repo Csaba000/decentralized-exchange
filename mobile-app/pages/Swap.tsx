@@ -12,6 +12,7 @@ import Icon from "react-native-vector-icons/Ionicons";
 import useAlchemyProvider from "../ui-logic/useAlchemy";
 import useGetTokenData from "../ui-logic/useGetTokenData";
 import abiErc20 from "../contract/abiErc20.json";
+import abiRouter from "../contract/abiRouter.json";
 import abiPool from "../contract/abiPool.json";
 import { useWalletConnect } from "@walletconnect/react-native-dapp";
 import useInitAll from "../ui-logic/useGetPairAddress";
@@ -52,6 +53,8 @@ const Swap = () => {
 
   const [toTokenBalance, setToTokenBalance] = useState("");
 
+  const connector = useWalletConnect();
+
   const [poolAddress, setPoolAddress] = useState("");
   //first inputField => true, second inputField => false
   const [inputState, setInputState] = useState(false);
@@ -67,6 +70,8 @@ const Swap = () => {
 
   const [getAmountOut, setAmountOut] = useState("");
   const [getAmountIn, setAmountIn] = useState("");
+
+  const routerAddress = "0xE4c76722C7c5a60A62F6aF1Ec7C3C2E303c0dA4f";
 
   useEffect(() => {
     if (data) {
@@ -243,6 +248,40 @@ const Swap = () => {
     from ? setFromTokenBalance(balance) : setToTokenBalance(balance);
   };
 
+  const swapTokens = async () => {
+    //tokensForTokens - 10
+    //TODO make slippage option - 0.05
+    // const slippage = new BigNumber("100");
+
+    const iRouter = new ethers.utils.Interface(abiRouter);
+    // const bigNumberFirstText = new BigNumber(firstText);
+    console.log(getTokenAddress(fromTokenIndex), getTokenAddress(toTokenIndex));
+    
+    //TODO make slippage option right and firstText to BigNumber
+    const swapABI = iRouter.encodeFunctionData("swapExactTokensForTokens", [
+      10,
+      1,
+      [getTokenAddress(fromTokenIndex), getTokenAddress(toTokenIndex)],
+      accounts[0]!,
+      Math.floor(Date.now() / 1000) + 60 * 20,
+    ]);
+
+    const tx = {
+      from: accounts[0]!,
+      to: routerAddress,
+      data: swapABI,
+    };
+
+    try {
+      const send = connector.sendTransaction(tx);
+      console.log(await send);
+      getTokenBalance(fromTokenIndex, true);
+      getTokenBalance(toTokenIndex, false);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.cardContainer}>
@@ -417,7 +456,7 @@ const Swap = () => {
           <TouchableOpacity
             style={styles.disconnectButton}
             onPress={() => {
-              alert("Hello");
+              swapTokens();
             }}
           >
             <Text style={styles.connectedText}>Swap</Text>
