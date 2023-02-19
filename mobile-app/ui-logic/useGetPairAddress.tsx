@@ -31,9 +31,6 @@ const useInitAll = () => {
         setPoolContract(
           new ethers.Contract(response.data, abiPool, alchemyProvider)
         );
-        // setRouterContract(
-        //   new ethers.Contract(routerAddress, abiRouter, alchemyProvider)
-        // );
         setData(response.data);
         return response.data;
       })

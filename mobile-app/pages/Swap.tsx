@@ -18,8 +18,16 @@ import useInitAll from "../ui-logic/useGetPairAddress";
 import LoadingIndicator from "../components/LoadingIndicator";
 import { BigNumber } from "bignumber.js";
 import useRouterContract from "../ui-logic/useRouterContract";
+import useConnectToMetamask from "../ui-logic/connectWallet";
+import { notificationMessage } from "../utils/notifications";
+import { useNavigation } from "@react-navigation/native";
+import useDebounce from "../ui-logic/useDebounce";
+import { Skeleton } from "@rneui/themed";
+import { LinearGradient } from "expo-linear-gradient";
+import Animated from "react-native-reanimated";
 
 const Swap = () => {
+  const navigation = useNavigation<any>();
   const { data, getTokenNames } = useGetTokenData();
   const { alchemyProvider, getBalance } = useAlchemyProvider();
   const {
@@ -29,7 +37,9 @@ const Swap = () => {
     getPairAddress,
     getRouterAddress,
   } = useInitAll();
-  const { accounts } = useWalletConnect();
+  const { connected, accounts } = useWalletConnect();
+  const { connect, connectedWallet } = useConnectToMetamask();
+
   // const { routerContract } = useRouterContract();
 
   const [fromTokenBalance, setFromTokenBalance] = useState("");
@@ -37,17 +47,26 @@ const Swap = () => {
   const [fromTokenIndex, setFromTokenIndex] = useState(0);
   const [toTokenIndex, setToTokenIndex] = useState(0);
 
+  const [firstSelectedToken, setFirstSelectedToken] = useState(false);
+  const [secondSelectedToken, setSecondSelectedToken] = useState(false);
+
   const [toTokenBalance, setToTokenBalance] = useState("");
 
   const [poolAddress, setPoolAddress] = useState("");
   //first inputField => true, second inputField => false
   const [inputState, setInputState] = useState(false);
 
+  const [loadingFirst, setLoadingFirst] = useState(false);
+  const [loadingSecond, setLoadingSecond] = useState(false);
+
   const [secondText, setSecondText] = useState("");
   const [firstText, setFirstText] = useState("");
 
-  const [getAmountOut, setAmountOut] = useState(0);
-  const [getAmountIn, setAmountIn] = useState(0);
+  const debouncedValueFirst = useDebounce<string>(firstText, 500);
+  const debouncedValueSecond = useDebounce<string>(secondText, 500);
+
+  const [getAmountOut, setAmountOut] = useState("");
+  const [getAmountIn, setAmountIn] = useState("");
 
   useEffect(() => {
     if (data) {
@@ -58,6 +77,21 @@ const Swap = () => {
       getRouterAddress();
     }
   }, [toTokenIndex, fromTokenIndex]);
+
+  // Fetch API (optional)
+  useEffect(() => {
+    const inti = async () => {
+      await calculateSecondInput(firstText);
+    };
+    inti();
+  }, [debouncedValueFirst]);
+
+  useEffect(() => {
+    const inti = async () => {
+      await calculateFirstInput(secondText);
+    };
+    inti();
+  }, [debouncedValueSecond]);
 
   function sort(tokenA: string, tokenB: string): [string, string, boolean] {
     var a = new BigNumber(tokenA.slice(2), 16);
@@ -70,6 +104,17 @@ const Swap = () => {
   }
 
   const calculateSecondInput = async (text: string) => {
+    if (text === "") {
+      setSecondText("");
+      return;
+    }
+
+    if (!poolContract) {
+      alert("There is no pool for this pair! Please try another pair.");
+      return;
+    }
+    setLoadingSecond(true);
+
     const amounts = await poolContract.getReserves();
 
     var reserve1: BigNumber = amounts[0];
@@ -98,10 +143,23 @@ const Swap = () => {
       }
     } catch (error) {
       console.log(error);
+    } finally {
+      setLoadingSecond(false);
     }
   };
 
   const calculateFirstInput = async (text: string) => {
+    if (text === "") {
+      setFirstText("");
+      return;
+    }
+
+    if (!poolContract) {
+      alert("There is no pool for this pair! Please try another pair.");
+      return;
+    }
+
+    setLoadingFirst(true);
     const amounts = await poolContract.getReserves();
 
     var reserve1: BigNumber = amounts[0];
@@ -123,11 +181,23 @@ const Swap = () => {
         );
 
         setAmountIn(amountIn);
+
+        return amountIn;
       } else {
-        setAmountIn(await routerContract.getAmountIn(text, reserve1, reserve2));
+        const amountIn = await routerContract.getAmountIn(
+          text,
+          reserve1,
+          reserve2
+        );
+        setAmountIn(amountIn);
+
+        return amountIn;
       }
     } catch (error) {
       console.log(error);
+      return "0";
+    } finally {
+      setLoadingFirst(false);
     }
   };
 
@@ -141,7 +211,6 @@ const Swap = () => {
     return tokenAddresses[tokenIds.indexOf(tokenId)];
   };
 
-  //TODO - get decimals from token and format accordingly
   const getTokenDecimals = (tokenId: number) => {
     return tokenDecimals[tokenIds.indexOf(tokenId)];
   };
@@ -166,11 +235,12 @@ const Swap = () => {
     );
 
     const balanceOf = await contract.balanceOf(accounts[0]!);
-    const balInEth = ethers.utils
-      .parseUnits(balanceOf.toString(), 10)
-      .toString();
 
-    from ? setFromTokenBalance(balInEth) : setToTokenBalance(balInEth);
+    const balance = parseFloat(
+      ethers.utils.formatUnits(balanceOf, getTokenDecimals(tokenId))
+    ).toFixed(2);
+
+    from ? setFromTokenBalance(balance) : setToTokenBalance(balance);
   };
 
   return (
@@ -179,79 +249,23 @@ const Swap = () => {
         <View style={styles.header}>
           <Text style={styles.headerText}>Swap</Text>
         </View>
-        <View style={styles.textInputs}>
-          <View style={styles.fromInput}>
-            <SelectDropdown
-              onChangeSearchInputText={(text) => {
-                console.log(text);
-              }}
-              rowTextStyle={styles.dropdownRowText}
-              disableAutoScroll={true}
-              defaultButtonText={"Select Token"}
-              buttonStyle={styles.dropdownButtonHalf}
-              buttonTextStyle={styles.dropdownButtonText}
-              data={tokenNames}
-              onSelect={async (selectedItem, index) => {
-                setFromTokenIndex(index);
-                await getTokenBalance(index, true);
-              }}
-              buttonTextAfterSelection={(selectedItem, index) => {
-                return selectedItem;
-              }}
-              rowTextForSelection={(item, index) => {
-                return item;
-              }}
-              dropdownStyle={styles.dropdownStyle}
-              renderDropdownIcon={() => {
-                return (
-                  <Icon
-                    name="chevron-down-outline"
-                    size={24}
-                    color="black"
-                    style={{ marginLeft: 10 }}
-                  />
-                );
-              }}
-            />
-
-            <Text style={styles.fromToText}>From</Text>
-            <Text style={{ fontSize: 14, color: "white" }}>
-              Balance: {fromTokenBalance}
-            </Text>
-
-            <TextInput
-              value={!inputState ? getAmountIn.toString() : firstText}
-              onChangeText={async (text) => {
-                setInputState(true);
-                setFirstText(text);
-                await calculateSecondInput(text);
-              }}
-              style={styles.textInput}
-              placeholder="0.00"
-              placeholderTextColor="grey"
-            />
-          </View>
-
-          <View style={styles.fromInput}>
-            <View
-              style={{
-                marginTop: 10,
-              }}
-            >
+        {connected ? (
+          <View style={styles.textInputs}>
+            <View style={styles.fromInput}>
               <SelectDropdown
                 onChangeSearchInputText={(text) => {
                   console.log(text);
                 }}
                 rowTextStyle={styles.dropdownRowText}
-                dropdownStyle={styles.dropdownStyle}
                 disableAutoScroll={true}
                 defaultButtonText={"Select Token"}
                 buttonStyle={styles.dropdownButtonHalf}
                 buttonTextStyle={styles.dropdownButtonText}
                 data={tokenNames}
                 onSelect={async (selectedItem, index) => {
-                  setToTokenIndex(index);
-                  await getTokenBalance(index, false);
+                  setFromTokenIndex(index);
+                  setFirstSelectedToken(true);
+                  await getTokenBalance(index, true);
                 }}
                 buttonTextAfterSelection={(selectedItem, index) => {
                   return selectedItem;
@@ -259,7 +273,7 @@ const Swap = () => {
                 rowTextForSelection={(item, index) => {
                   return item;
                 }}
-                searchInputStyle={styles.dropdownSearchInput}
+                dropdownStyle={styles.dropdownStyle}
                 renderDropdownIcon={() => {
                   return (
                     <Icon
@@ -271,33 +285,155 @@ const Swap = () => {
                   );
                 }}
               />
+              <View style={styles.balanceAndText}>
+                <Text style={styles.fromToText}>From</Text>
+                <Text style={styles.balanceText}>
+                  Balance:{" "}
+                  {!fromTokenBalance ? (
+                    <LoadingIndicator size={10} color="white" />
+                  ) : (
+                    fromTokenBalance
+                  )}
+                </Text>
+              </View>
+              {!loadingFirst ? (
+                <TextInput
+                  keyboardType="numeric"
+                  editable={firstSelectedToken}
+                  value={!inputState ? getAmountIn.toString() : firstText}
+                  onChangeText={async (text) => {
+                    setInputState(true);
+                    if (text.length > 0) {
+                      setFirstText(text);
+                    } else {
+                      setFirstText("");
+                      setAmountOut("");
+                    }
+                  }}
+                  style={styles.textInput}
+                  placeholder={firstSelectedToken ? "0.0" : "Select Token"}
+                  placeholderTextColor="grey"
+                />
+              ) : (
+                <>
+                  <View style={[styles.textInput]}>
+                    <LoadingIndicator size={20} color="black" />
+                  </View>
+                </>
+              )}
             </View>
-            <Text style={styles.fromToText}>To</Text>
-            <Text style={{ fontSize: 16, color: "white" }}>
-              Balance: {toTokenBalance}
-            </Text>
-            <TextInput
-              value={inputState ? getAmountOut.toString() : secondText}
-              onChangeText={async (text) => {
-                setInputState(false);
-                setSecondText(text);
-                await calculateFirstInput(text);
-              }}
-              style={styles.textInput}
-              placeholder="0.00"
-              placeholderTextColor="grey"
-            />
-          </View>
-        </View>
 
-        <TouchableOpacity
-          style={styles.disconnectButton}
-          onPress={() => {
-            alert("Hello");
-          }}
-        >
-          <Text style={styles.connectedText}>Swap</Text>
-        </TouchableOpacity>
+            <View style={styles.fromInput}>
+              <View
+                style={{
+                  marginTop: 10,
+                }}
+              >
+                <SelectDropdown
+                  onChangeSearchInputText={(text) => {
+                    console.log(text);
+                  }}
+                  rowTextStyle={styles.dropdownRowText}
+                  dropdownStyle={styles.dropdownStyle}
+                  disableAutoScroll={true}
+                  defaultButtonText={"Select Token"}
+                  buttonStyle={styles.dropdownButtonHalf}
+                  buttonTextStyle={styles.dropdownButtonText}
+                  data={tokenNames}
+                  onSelect={async (selectedItem, index) => {
+                    setToTokenIndex(index);
+                    setSecondSelectedToken(true);
+                    await getTokenBalance(index, false);
+                  }}
+                  buttonTextAfterSelection={(selectedItem, index) => {
+                    return selectedItem;
+                  }}
+                  rowTextForSelection={(item, index) => {
+                    return item;
+                  }}
+                  searchInputStyle={styles.dropdownSearchInput}
+                  renderDropdownIcon={() => {
+                    return (
+                      <Icon
+                        name="chevron-down-outline"
+                        size={24}
+                        color="black"
+                        style={{ marginLeft: 10 }}
+                      />
+                    );
+                  }}
+                />
+              </View>
+              <View style={styles.balanceAndText}>
+                <Text style={styles.fromToText}>To</Text>
+                <Text style={styles.balanceText}>
+                  Balance:{" "}
+                  {!toTokenBalance ? (
+                    <LoadingIndicator size={10} color="white" />
+                  ) : (
+                    toTokenBalance
+                  )}
+                </Text>
+              </View>
+              {!loadingSecond ? (
+                <TextInput
+                  keyboardType="numeric"
+                  editable={secondSelectedToken}
+                  value={inputState ? getAmountOut.toString() : secondText}
+                  onChangeText={async (text) => {
+                    setInputState(false);
+                    if (text.length > 0) {
+                      setSecondText(text);
+                    } else {
+                      setSecondText("");
+                      setAmountIn("");
+                    }
+                  }}
+                  style={styles.textInput}
+                  placeholder={secondSelectedToken ? "0.0" : "Select Token"}
+                  placeholderTextColor="grey"
+                />
+              ) : (
+                <>
+                  <View style={[styles.textInput]}>
+                    <LoadingIndicator size={20} color="black" />
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
+        ) : (
+          <Text
+            style={{
+              color: "white",
+              fontSize: 20,
+              fontWeight: "bold",
+            }}
+          >
+            PLEASE CONNECT WALLET FIRST
+          </Text>
+        )}
+        {connected ? (
+          <TouchableOpacity
+            style={styles.disconnectButton}
+            onPress={() => {
+              alert("Hello");
+            }}
+          >
+            <Text style={styles.connectedText}>Swap</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.connectButton}
+            onPress={() => {
+              navigation.navigate("Settings");
+            }}
+          >
+            <Text style={styles.connectedTextButton}>
+              {connectedWallet && connected ? "Connected" : "Go to Settings"}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -309,6 +445,35 @@ const styles = StyleSheet.create({
   header: {
     position: "absolute",
     top: 20,
+  },
+  connectButton: {
+    marginTop: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#666",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 12,
+    },
+    shadowOpacity: 0.58,
+    shadowRadius: 16.0,
+    elevation: 24,
+    width: "80%",
+    height: 55,
+    borderRadius: 50,
+  },
+  balanceAndText: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "80%",
+  },
+  balanceText: {
+    fontSize: 12,
+    color: "white",
+    opacity: 0.7,
+    fontWeight: "bold",
   },
   headerText: {
     fontSize: 30,
@@ -331,7 +496,7 @@ const styles = StyleSheet.create({
     width: "80%",
     height: 55,
     backgroundColor: "white",
-    borderRadius: 50,
+    borderRadius: 10,
     marginBottom: 20,
     paddingLeft: 20,
   },
@@ -365,6 +530,14 @@ const styles = StyleSheet.create({
     color: "black",
     fontSize: 20,
   },
+  connectedTextButton: {
+    color: "white",
+    fontWeight: "bold",
+    textAlign: "center",
+    textAlignVertical: "center",
+    fontSize: 20,
+  },
+
   fromInput: {
     left: "10%",
     width: "100%",

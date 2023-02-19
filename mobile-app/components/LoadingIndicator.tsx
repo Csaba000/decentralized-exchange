@@ -1,6 +1,12 @@
+import { FC } from "react";
 import { ActivityIndicator, View } from "react-native";
 
-const LoadingIndicator = () => (
+interface LoadingIndicatorProps {
+  size?: "small" | "large" | number;
+  color?: string;
+}
+
+const LoadingIndicator: FC<LoadingIndicatorProps> = ({ size, color }) => (
   <View
     style={{
       flex: 1,
@@ -8,7 +14,7 @@ const LoadingIndicator = () => (
       alignItems: "center",
     }}
   >
-    <ActivityIndicator size="large" />
+    <ActivityIndicator size={size} color={color} />
   </View>
 );
 
