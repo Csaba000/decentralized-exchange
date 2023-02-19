@@ -59,11 +59,11 @@ MongoClient.connect(
 
     app.use(bodyParser.json());
 
-    app.get("/poolAddress", (req, res) => {
-      console.log(req.query);
-      let token_addr1 = req.query.token_addr1;
-      let token_addr2 = req.query.token_addr2;
-      console.log(token_addr1, token_addr2);
+    app.post("/poolAddress", (req, res) => {
+      console.log(req.body);
+      let token_addr1 = req.body.params.token_addr1;
+      let token_addr2 = req.body.params.token_addr2;
+      console.log("TOKENS",token_addr1, token_addr2);
       if(token_addr1 === undefined || token_addr2 === undefined) {
         res.status(400).send("Bad request");
         return;
@@ -84,6 +84,7 @@ MongoClient.connect(
             res.send(docs[0].address);
           }
         });
+        0.000000000000000001
     });
 
     // Start the server
