@@ -1,6 +1,10 @@
-import Toast from 'react-native-root-toast';
+import Toast from "react-native-root-toast";
 
-export const notificationMessage = (msg: string, color: string, duration: number) => {
+export const notificationMessage = (
+  msg: string,
+  color: string,
+  duration: number
+) => {
   const bottomOffset = -100;
 
   Toast.show(msg, {

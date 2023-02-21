@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  Modal,
 } from "react-native";
 import SelectDropdown from "react-native-select-dropdown";
 import Icon from "react-native-vector-icons/Ionicons";
@@ -26,6 +27,7 @@ import useDebounce from "../ui-logic/useDebounce";
 import { Skeleton } from "@rneui/themed";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated from "react-native-reanimated";
+import MyModal from "../components/Modal";
 
 const Swap = () => {
   const navigation = useNavigation<any>();
@@ -70,6 +72,8 @@ const Swap = () => {
 
   const [getAmountOut, setAmountOut] = useState("");
   const [getAmountIn, setAmountIn] = useState("");
+
+  const [modalVisible, setModalVisible] = useState(false);
 
   const routerAddress = "0xE4c76722C7c5a60A62F6aF1Ec7C3C2E303c0dA4f";
 
@@ -256,7 +260,7 @@ const Swap = () => {
     const iRouter = new ethers.utils.Interface(abiRouter);
     // const bigNumberFirstText = new BigNumber(firstText);
     console.log(getTokenAddress(fromTokenIndex), getTokenAddress(toTokenIndex));
-    
+
     //TODO make slippage option right and firstText to BigNumber
     const swapABI = iRouter.encodeFunctionData("swapExactTokensForTokens", [
       10,
@@ -283,7 +287,7 @@ const Swap = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container]}>
       <View style={styles.cardContainer}>
         <View style={styles.header}>
           <Text style={styles.headerText}>Swap</Text>
@@ -291,39 +295,66 @@ const Swap = () => {
         {connected ? (
           <View style={styles.textInputs}>
             <View style={styles.fromInput}>
-              <SelectDropdown
-                onChangeSearchInputText={(text) => {
-                  console.log(text);
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  width: "80%",
                 }}
-                rowTextStyle={styles.dropdownRowText}
-                disableAutoScroll={true}
-                defaultButtonText={"Select Token"}
-                buttonStyle={styles.dropdownButtonHalf}
-                buttonTextStyle={styles.dropdownButtonText}
-                data={tokenNames}
-                onSelect={async (selectedItem, index) => {
-                  setFromTokenIndex(index);
-                  setFirstSelectedToken(true);
-                  await getTokenBalance(index, true);
-                }}
-                buttonTextAfterSelection={(selectedItem, index) => {
-                  return selectedItem;
-                }}
-                rowTextForSelection={(item, index) => {
-                  return item;
-                }}
-                dropdownStyle={styles.dropdownStyle}
-                renderDropdownIcon={() => {
-                  return (
-                    <Icon
-                      name="chevron-down-outline"
-                      size={24}
-                      color="black"
-                      style={{ marginLeft: 10 }}
-                    />
-                  );
-                }}
-              />
+              >
+                <SelectDropdown
+                  onChangeSearchInputText={(text) => {
+                    console.log(text);
+                  }}
+                  rowTextStyle={styles.dropdownRowText}
+                  disableAutoScroll={true}
+                  defaultButtonText={"Select Token"}
+                  buttonStyle={styles.dropdownButtonHalf}
+                  buttonTextStyle={styles.dropdownButtonText}
+                  data={tokenNames}
+                  onSelect={async (selectedItem, index) => {
+                    setFromTokenIndex(index);
+                    setFirstSelectedToken(true);
+                    await getTokenBalance(index, true);
+                  }}
+                  buttonTextAfterSelection={(selectedItem, index) => {
+                    return selectedItem;
+                  }}
+                  rowTextForSelection={(item, index) => {
+                    return item;
+                  }}
+                  dropdownStyle={styles.dropdownStyle}
+                  renderDropdownIcon={() => {
+                    return (
+                      <Icon
+                        name="chevron-down-outline"
+                        size={24}
+                        color="black"
+                        style={{ marginLeft: 10 }}
+                      />
+                    );
+                  }}
+                />
+                <TouchableOpacity
+                  onPress={() => setModalVisible(true)}
+                  style={{
+                    marginTop: 8,
+                    width: 40,
+                    height: 40,
+                  }}
+                >
+                  <Icon
+                    name="settings"
+                    size={24}
+                    color="white"
+                    style={{ marginLeft: 10 }}
+                  />
+                </TouchableOpacity>
+                <MyModal
+                  modalVisible={modalVisible}
+                  setModalVisible={setModalVisible}
+                />
+              </View>
               <View style={styles.balanceAndText}>
                 <Text style={styles.fromToText}>From</Text>
                 <Text style={styles.balanceText}>

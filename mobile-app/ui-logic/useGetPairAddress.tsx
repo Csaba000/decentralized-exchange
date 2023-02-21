@@ -21,7 +21,7 @@ const useInitAll = () => {
 
   const getPairAddress = (token0: string, token1: string) => {
     axios
-      .post("http://192.168.1.180:3000/poolAddress", {
+      .post("http://192.168.224.180:3000/poolAddress", {
         params: {
           token_addr1: token0,
           token_addr2: token1,

@@ -14,7 +14,7 @@ const useGetTokenData = () => {
 
   useEffect(() => {
     axios
-      .get("http://192.168.1.180:3000/tokenInfo")
+      .get("http://192.168.224.180:3000/tokenInfo")
       .then(function (response) {
         setData(response.data);
       })
