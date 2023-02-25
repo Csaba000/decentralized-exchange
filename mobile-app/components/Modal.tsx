@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, useContext } from "react";
 import {
   Modal,
   View,
@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
+import { ModalContext } from "../context/ModalProvider";
+import useSetModalText from "../ui-logic/useSetModalText";
 
 interface Props {
   modalVisible: boolean;
@@ -15,6 +17,10 @@ interface Props {
 }
 
 const MyModal: FC<Props> = ({ modalVisible, setModalVisible }) => {
+  const { slippage, deadline } = useContext(ModalContext);
+
+  const [stateSlippage, setStateSlippage] = slippage;
+  const [stateDeadline, setStateDeadline] = deadline;
   return (
     <Modal
       animationType="fade"
@@ -42,6 +48,7 @@ const MyModal: FC<Props> = ({ modalVisible, setModalVisible }) => {
               style={styles.slippageTextInput}
               placeholder="0.10%"
               keyboardType="numeric"
+              onChangeText={(text) => setStateSlippage(text)}
             />
 
             <Text style={styles.deadlineText}>Deadline</Text>
@@ -49,6 +56,7 @@ const MyModal: FC<Props> = ({ modalVisible, setModalVisible }) => {
               style={styles.deadlineTextInput}
               placeholder="30 min"
               keyboardType="numeric"
+              onChangeText={(text) => setStateDeadline(text)}
             />
             <TouchableOpacity
               onPress={() => {

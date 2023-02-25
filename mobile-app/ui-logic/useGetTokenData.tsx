@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
+import { URL } from "../utils/constants";
 
 type Token = {
   name: string;
@@ -14,7 +15,7 @@ const useGetTokenData = () => {
 
   useEffect(() => {
     axios
-      .get("http://192.168.224.180:3000/tokenInfo")
+      .get(`${URL}/tokenInfo`)
       .then(function (response) {
         setData(response.data);
       })

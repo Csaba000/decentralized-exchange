@@ -9,6 +9,7 @@ import BottomTab from "./components/BottomTab";
 import { NavigationContainer } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import Header from "./components/Header";
+import { ModalProvider } from "./context/ModalProvider";
 
 export default function App() {
   return (
@@ -18,10 +19,12 @@ export default function App() {
         asyncStorage: AsyncStorage as unknown as IAsyncStorage,
       }}
     >
-      <NavigationContainer>
-        <BottomTab />
-        <StatusBar style="auto" />
-      </NavigationContainer>
+      <ModalProvider>
+        <NavigationContainer>
+          <BottomTab />
+          <StatusBar style="auto" />
+        </NavigationContainer>
+      </ModalProvider>
     </WalletConnectProvider>
   );
 }

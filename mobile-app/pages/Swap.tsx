@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -28,6 +28,8 @@ import { Skeleton } from "@rneui/themed";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated from "react-native-reanimated";
 import MyModal from "../components/Modal";
+
+import { ModalContext } from "../context/ModalProvider";
 
 const Swap = () => {
   const navigation = useNavigation<any>();
@@ -76,6 +78,10 @@ const Swap = () => {
   const [modalVisible, setModalVisible] = useState(false);
 
   const routerAddress = "0xE4c76722C7c5a60A62F6aF1Ec7C3C2E303c0dA4f";
+
+  const { slippage, deadline } = useContext(ModalContext);
+  const [stateSlippage, setStateSlippage] = slippage;
+  const [stateDeadline, setStateDeadline] = deadline;
 
   useEffect(() => {
     if (data) {
@@ -258,8 +264,9 @@ const Swap = () => {
     // const slippage = new BigNumber("100");
 
     const iRouter = new ethers.utils.Interface(abiRouter);
-    // const bigNumberFirstText = new BigNumber(firstText);
-    console.log(getTokenAddress(fromTokenIndex), getTokenAddress(toTokenIndex));
+    // // const bigNumberFirstText = new BigNumber(firstText);
+
+    const deadline = Math.floor(Date.now() / 1000) + 60 * Number(stateDeadline);
 
     //TODO make slippage option right and firstText to BigNumber
     const swapABI = iRouter.encodeFunctionData("swapExactTokensForTokens", [
@@ -267,7 +274,7 @@ const Swap = () => {
       1,
       [getTokenAddress(fromTokenIndex), getTokenAddress(toTokenIndex)],
       accounts[0]!,
-      Math.floor(Date.now() / 1000) + 60 * 20,
+      deadline,
     ]);
 
     const tx = {
@@ -487,7 +494,11 @@ const Swap = () => {
           <TouchableOpacity
             style={styles.disconnectButton}
             onPress={() => {
-              swapTokens();
+              if (firstText || secondText) {
+                swapTokens();
+              } else {
+                alert("Please enter amount to swap");
+              }
             }}
           >
             <Text style={styles.connectedText}>Swap</Text>

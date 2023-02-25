@@ -4,6 +4,7 @@ import { useState } from "react";
 import abiPool from "../contract/abiPool.json";
 import useAlchemyProvider from "./useAlchemy";
 import abiRouter from "../contract/abiRouter.json";
+import { URL } from "../utils/constants";
 
 const useInitAll = () => {
   const [data2, setData] = useState<any>();
@@ -21,7 +22,7 @@ const useInitAll = () => {
 
   const getPairAddress = (token0: string, token1: string) => {
     axios
-      .post("http://192.168.224.180:3000/poolAddress", {
+      .post(`${URL}/poolAddress`, {
         params: {
           token_addr1: token0,
           token_addr2: token1,
