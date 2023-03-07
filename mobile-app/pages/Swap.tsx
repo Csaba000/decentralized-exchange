@@ -282,6 +282,7 @@ const Swap = () => {
       to: routerAddress,
       data: swapABI,
       gasLimit: 1000000,
+      nonce: await alchemyProvider.getTransactionCount(accounts[0]!),
     };
 
     try {
