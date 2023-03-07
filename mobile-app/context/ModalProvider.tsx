@@ -20,8 +20,8 @@ interface Props2 {
 }
 
 export const ModalProvider = ({ children }: Props2) => {
-  const [slippage, setSlippage] = useState("");
-  const [deadline, setDeadline] = useState("");
+  const [slippage, setSlippage] = useState("1");
+  const [deadline, setDeadline] = useState("30");
 
   return (
     <ModalContext.Provider

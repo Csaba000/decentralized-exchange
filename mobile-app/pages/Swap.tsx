@@ -281,6 +281,7 @@ const Swap = () => {
       from: accounts[0]!,
       to: routerAddress,
       data: swapABI,
+      gasLimit: 1000000,
     };
 
     try {
