@@ -14,7 +14,7 @@ const LoadingIndicator: FC<LoadingIndicatorProps> = ({ size, color }) => (
       alignItems: "center",
     }}
   >
-    <ActivityIndicator size={size} color={color} />
+    <ActivityIndicator testID="loading-indicator" size={size} color={color} />
   </View>
 );
 

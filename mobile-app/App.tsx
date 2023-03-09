@@ -8,8 +8,10 @@ import { IAsyncStorage } from "./AsyncStorage";
 import BottomTab from "./components/BottomTab";
 import { NavigationContainer } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
-import Header from "./components/Header";
+
 import { ModalProvider } from "./context/ModalProvider";
+import { LogBox } from 'react-native';
+LogBox.ignoreLogs(['Overwriting fontFamily style attribute preprocessor']);
 
 export default function App() {
   return (

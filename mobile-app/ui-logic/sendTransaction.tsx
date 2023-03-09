@@ -15,8 +15,6 @@ const useSendTransaction = () => {
 
     const contract = new ethers.Contract(contractAddress, abiFactory, AlchemyProvider);
 
-    
-
     const iFeeToo = new ethers.utils.Interface(abiFactory);
 
     const encodedAbi = iFeeToo.encodeFunctionData("setFeeToSetter", [

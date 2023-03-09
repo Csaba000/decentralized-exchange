@@ -25,10 +25,12 @@ export const ModalProvider = ({ children }: Props2) => {
 
   return (
     <ModalContext.Provider
-      value={{
-        slippage: [slippage, setSlippage],
-        deadline: [deadline, setDeadline],
-      }}
+      value={
+        {
+          slippage: [slippage, setSlippage] as any,
+          deadline: [deadline, setDeadline] as any,
+        } as any
+      }
     >
       {children}
     </ModalContext.Provider>

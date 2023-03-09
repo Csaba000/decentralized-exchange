@@ -17,7 +17,7 @@ import abiRouter from "../contract/abiRouter.json";
 import abiPool from "../contract/abiPool.json";
 import { useWalletConnect } from "@walletconnect/react-native-dapp";
 import useInitAll from "../ui-logic/useGetPairAddress";
-import LoadingIndicator from "../components/LoadingIndicator";
+import LoadingIndicator from "../components/LoadingIndicator/LoadingIndicator";
 import { BigNumber } from "bignumber.js";
 import useRouterContract from "../ui-logic/useRouterContract";
 import useConnectToMetamask from "../ui-logic/connectWallet";

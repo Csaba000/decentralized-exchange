@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import { ModalContext } from "../context/ModalProvider";
-import useSetModalText from "../ui-logic/useSetModalText";
 
 interface Props {
   modalVisible: boolean;

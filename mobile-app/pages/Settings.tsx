@@ -37,7 +37,7 @@ const Settings = () => {
       }
     };
     init();
-  }, [alchemyProvider]);
+  }, [alchemyProvider, accounts]);
 
   if (alchemyProvider == undefined) {
     return (

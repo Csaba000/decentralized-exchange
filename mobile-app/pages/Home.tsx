@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Modal,
   Pressable,
+  Linking,
 } from "react-native";
 import { Picker, onOpen } from "react-native-actions-sheet-picker";
 import SelectDropdown from "react-native-select-dropdown";
@@ -19,13 +20,18 @@ import Header from "../components/Header";
 
 const Home = () => {
   const [selected, setSelected] = useState(undefined);
-
+  const link =
+    "wss://b.bridge.walletconnect.org?env=browser&host=&protocol=wc&version=1";
   return (
     <View style={styles.container}>
       <Header title="Dex" />
       <View style={styles.pageContainer}>
         <View style={styles.cardContainer}>
           <Text>Hello</Text>
+          <Button
+            title="Open Modal"
+            onPress={() => Linking.openURL("link")}
+          />
         </View>
       </View>
     </View>
