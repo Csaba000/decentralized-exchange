@@ -3,6 +3,7 @@ import { MongoClient } from "mongodb";
 import { config } from "dotenv";
 import cors from "cors";
 import bodyParser from "body-parser";
+import { sortTokens } from "../src/sort.js";
 
 config();
 console.log(process.env.DB_URI);
@@ -61,17 +62,27 @@ MongoClient.connect(
 
     app.post("/poolAddress", (req, res) => {
       console.log(req.body);
+
       let token_addr1 = req.body.params.token_addr1;
       let token_addr2 = req.body.params.token_addr2;
-      console.log("TOKENS",token_addr1, token_addr2);
-      if(token_addr1 === undefined || token_addr2 === undefined) {
+
+      console.log("TOKENS", token_addr1, token_addr2);
+
+      const sortedTokens = sortTokens(token_addr1, token_addr2);
+      console.log("SORTED TOKENS", sortedTokens);
+
+      const sortedToken1 = sortedTokens[0];
+      const sortedToken2 = sortedTokens[1];
+      const isSwapped = sortedTokens[2];
+
+      if (token_addr1 === undefined || token_addr2 === undefined) {
         res.status(400).send("Bad request");
         return;
       }
 
       const query = {
-        pair1_address: token_addr1,
-        pair2_address: token_addr2,
+        pair1_address: sortedToken1,
+        pair2_address: sortedToken2,
       };
       db.collection("pools")
         .find(query)
@@ -84,7 +95,6 @@ MongoClient.connect(
             res.send(docs[0].address);
           }
         });
-        0.000000000000000001
     });
 
     // Start the server
