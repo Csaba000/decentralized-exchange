@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   Modal,
+  Linking,
 } from "react-native";
 import SelectDropdown from "react-native-select-dropdown";
 import Icon from "react-native-vector-icons/Ionicons";
@@ -30,6 +31,7 @@ import Animated from "react-native-reanimated";
 import MyModal from "../components/Modal";
 
 import { ModalContext } from "../context/ModalProvider";
+import { loadPartialConfig } from "@babel/core";
 
 const Swap = () => {
   const navigation = useNavigation<any>();
@@ -83,6 +85,8 @@ const Swap = () => {
   const [stateSlippage, setStateSlippage] = slippage;
   const [stateDeadline, setStateDeadline] = deadline;
 
+  const [transactionTX, setTransactionTX] = useState("");
+
   useEffect(() => {
     if (data) {
       getPairAddress(
@@ -108,13 +112,14 @@ const Swap = () => {
     inti();
   }, [debouncedValueSecond]);
 
-  function sort(tokenA: string, tokenB: string): [string, string, boolean] {
-    var a = new BigNumber(tokenA.slice(2), 16);
-    var b = new BigNumber(tokenB.slice(2), 16);
+  function sort(tokenA: string, tokenB: string) {
+    var a = new BigNumber(tokenA.toLowerCase().slice(2), 16);
+    var b = new BigNumber(tokenB.toLowerCase().slice(2), 16);
+
     if (a.lt(b)) {
-      return [tokenA, tokenB, false];
+      return false;
     } else {
-      return [tokenB, tokenA, true];
+      return true;
     }
   }
 
@@ -138,9 +143,7 @@ const Swap = () => {
     const tokenIn = getTokenAddress(fromTokenIndex);
     const tokenOut = getTokenAddress(toTokenIndex);
 
-    var token1,
-      token2,
-      swapped = sort(tokenIn, tokenOut);
+    var swapped = sort(tokenIn, tokenOut);
 
     try {
       if (swapped) {
@@ -180,12 +183,10 @@ const Swap = () => {
     var reserve1: BigNumber = amounts[0];
     var reserve2: BigNumber = amounts[1];
 
-    const tokenIn = getTokenAddress(toTokenIndex);
-    const tokenOut = getTokenAddress(fromTokenIndex);
+    const tokenIn = getTokenAddress(fromTokenIndex);
+    const tokenOut = getTokenAddress(toTokenIndex);
 
-    var token1,
-      token2,
-      swapped = sort(tokenIn, tokenOut);
+    var swapped = sort(tokenIn, tokenOut);
 
     try {
       if (swapped) {
@@ -216,7 +217,6 @@ const Swap = () => {
     }
   };
 
-  // MEGY MINDEN GG WP, KELL SWAP MEG LIQUIDITY PROVIDE
   const tokenNames = getTokenNames().map((token: any) => token.symbol);
   const tokenAddresses = getTokenNames().map((token: any) => token.address);
   const tokenIds = getTokenNames().map((token: any) => token.id);
@@ -259,19 +259,24 @@ const Swap = () => {
   };
 
   const swapTokens = async () => {
-    //tokensForTokens - 10
-    //TODO make slippage option - 0.05
-    // const slippage = new BigNumber("100");
-
     const iRouter = new ethers.utils.Interface(abiRouter);
-    // // const bigNumberFirstText = new BigNumber(firstText);
 
     const deadline = Math.floor(Date.now() / 1000) + 60 * Number(stateDeadline);
 
-    //TODO make slippage option right and firstText to BigNumber
+    const slippage = parseInt(stateSlippage) / 100;
+    console.log(slippage);
+
+    //6 db fuggveny swaphoz, min value szamolas mindig a beirt mezovel ellentetes mezobol kell kiszamolni
+    const minValue = parseInt(getAmountOut) * slippage;
+
+    console.log(getAmountOut);
+
+    const remainingAmount = parseInt(getAmountOut) - minValue;
+    console.log(Math.round(remainingAmount));
+
     const swapABI = iRouter.encodeFunctionData("swapExactTokensForTokens", [
-      10,
-      1,
+      firstText,
+      Math.round(remainingAmount),
       [getTokenAddress(fromTokenIndex), getTokenAddress(toTokenIndex)],
       accounts[0]!,
       deadline,
@@ -288,6 +293,7 @@ const Swap = () => {
     try {
       const send = connector.sendTransaction(tx);
       console.log(await send);
+      setTransactionTX(await send);
       getTokenBalance(fromTokenIndex, true);
       getTokenBalance(toTokenIndex, false);
     } catch (error) {
@@ -493,18 +499,40 @@ const Swap = () => {
           </Text>
         )}
         {connected ? (
-          <TouchableOpacity
-            style={styles.disconnectButton}
-            onPress={() => {
-              if (firstText || secondText) {
-                swapTokens();
-              } else {
-                alert("Please enter amount to swap");
-              }
-            }}
-          >
-            <Text style={styles.connectedText}>Swap</Text>
-          </TouchableOpacity>
+          <>
+            {transactionTX.length > 0 ? (
+              <TouchableOpacity
+                onPress={() => {
+                  Linking.openURL(
+                    "https://goerli.etherscan.io/tx/" + transactionTX
+                  );
+                }}
+              >
+                <Text style={styles.txStyle}>Latest Transaction:</Text>
+                <Text style={styles.txStyle}>
+                  {transactionTX.length > 0
+                    ? transactionTX.substring(0, 10) +
+                      "..." +
+                      transactionTX.substring(transactionTX.length - 10)
+                    : ""}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <></>
+            )}
+            <TouchableOpacity
+              style={styles.disconnectButton}
+              onPress={() => {
+                if (firstText || secondText) {
+                  swapTokens();
+                } else {
+                  alert("Please enter amount to swap");
+                }
+              }}
+            >
+              <Text style={styles.connectedText}>Swap</Text>
+            </TouchableOpacity>
+          </>
         ) : (
           <TouchableOpacity
             style={styles.connectButton}
@@ -525,6 +553,11 @@ const Swap = () => {
 export default Swap;
 
 const styles = StyleSheet.create({
+  txStyle: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
   header: {
     position: "absolute",
     top: 20,
