@@ -11,28 +11,6 @@ const Tab = createBottomTabNavigator();
 
 const HomeNav = createMaterialTopTabNavigator();
 
-const Dex = () => {
-  return (
-    <HomeNav.Navigator
-      screenOptions={{
-        tabBarStyle: {
-          paddingTop: 40,
-          backgroundColor: "#333",
-        },
-        tabBarLabelStyle: {
-          color: "white",
-        },
-        tabBarIndicatorStyle: {
-          backgroundColor: "white",
-        },
-      }}
-    >
-      <HomeNav.Screen name="Swap" component={Swap} />
-      <HomeNav.Screen name="Liquidity" component={Liquidity} />
-    </HomeNav.Navigator>
-  );
-};
-
 const MyTabs = () => {
   return (
     <Tab.Navigator
@@ -62,7 +40,7 @@ const MyTabs = () => {
 
       <Tab.Screen
         name="Trade"
-        component={Dex}
+        component={Swap}
         options={{
           headerShown: false,
           tabBarIcon: ({ color, size }) => (

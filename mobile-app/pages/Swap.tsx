@@ -8,6 +8,9 @@ import {
   TouchableOpacity,
   Modal,
   Linking,
+  ScrollView,
+  RefreshControl,
+  Switch,
 } from "react-native";
 import SelectDropdown from "react-native-select-dropdown";
 import Icon from "react-native-vector-icons/Ionicons";
@@ -32,6 +35,17 @@ import MyModal from "../components/Modal";
 
 import { ModalContext } from "../context/ModalProvider";
 import { loadPartialConfig } from "@babel/core";
+import { sort } from "../utils/sort";
+import CustomButton from "../components/Button/CustomButton";
+import {
+  checkApprovalFrom,
+  checkApprovalTo,
+} from "../ui-logic/approve/checkApprove";
+
+import {
+  sendApprovalFrom,
+  sendApprovalTo,
+} from "../ui-logic/approve/sendApprove";
 
 const Swap = () => {
   const navigation = useNavigation<any>();
@@ -50,6 +64,19 @@ const Swap = () => {
   // const { routerContract } = useRouterContract();
 
   const [fromTokenBalance, setFromTokenBalance] = useState("");
+
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const [liq, setLiq] = useState(false);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    if (fromTokenIndex !== 0) checkApprovalFrom();
+    if (toTokenIndex !== 0) checkApprovalTo();
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
 
   const [fromTokenIndex, setFromTokenIndex] = useState(0);
   const [toTokenIndex, setToTokenIndex] = useState(0);
@@ -85,6 +112,9 @@ const Swap = () => {
   const [stateSlippage, setStateSlippage] = slippage;
   const [stateDeadline, setStateDeadline] = deadline;
 
+  const [fromApprove, setFromApprove] = useState(false);
+  const [toApprove, setToApprove] = useState(false);
+
   const [transactionTX, setTransactionTX] = useState("");
 
   useEffect(() => {
@@ -97,7 +127,6 @@ const Swap = () => {
     }
   }, [toTokenIndex, fromTokenIndex]);
 
-  // Fetch API (optional)
   useEffect(() => {
     const inti = async () => {
       await calculateSecondInput(firstText);
@@ -111,17 +140,6 @@ const Swap = () => {
     };
     inti();
   }, [debouncedValueSecond]);
-
-  function sort(tokenA: string, tokenB: string) {
-    var a = new BigNumber(tokenA.toLowerCase().slice(2), 16);
-    var b = new BigNumber(tokenB.toLowerCase().slice(2), 16);
-
-    if (a.lt(b)) {
-      return false;
-    } else {
-      return true;
-    }
-  }
 
   const calculateSecondInput = async (text: string) => {
     if (text === "") {
@@ -264,15 +282,11 @@ const Swap = () => {
     const deadline = Math.floor(Date.now() / 1000) + 60 * Number(stateDeadline);
 
     const slippage = parseInt(stateSlippage) / 100;
-    console.log(slippage);
 
     //6 db fuggveny swaphoz, min value szamolas mindig a beirt mezovel ellentetes mezobol kell kiszamolni
     const minValue = parseInt(getAmountOut) * slippage;
 
-    console.log(getAmountOut);
-
     const remainingAmount = parseInt(getAmountOut) - minValue;
-    console.log(Math.round(remainingAmount));
 
     const swapABI = iRouter.encodeFunctionData("swapExactTokensForTokens", [
       firstText,
@@ -292,7 +306,7 @@ const Swap = () => {
 
     try {
       const send = connector.sendTransaction(tx);
-      console.log(await send);
+      console.log("Transaction hash: ", await send);
       setTransactionTX(await send);
       getTokenBalance(fromTokenIndex, true);
       getTokenBalance(toTokenIndex, false);
@@ -301,258 +315,468 @@ const Swap = () => {
     }
   };
 
-  return (
-    <View style={[styles.container]}>
-      <View style={styles.cardContainer}>
-        <View style={styles.header}>
-          <Text style={styles.headerText}>Swap</Text>
-        </View>
-        {connected ? (
-          <View style={styles.textInputs}>
-            <View style={styles.fromInput}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  width: "80%",
-                }}
-              >
-                <SelectDropdown
-                  onChangeSearchInputText={(text) => {
-                    console.log(text);
-                  }}
-                  rowTextStyle={styles.dropdownRowText}
-                  disableAutoScroll={true}
-                  defaultButtonText={"Select Token"}
-                  buttonStyle={styles.dropdownButtonHalf}
-                  buttonTextStyle={styles.dropdownButtonText}
-                  data={tokenNames}
-                  onSelect={async (selectedItem, index) => {
-                    setFromTokenIndex(index);
-                    setFirstSelectedToken(true);
-                    await getTokenBalance(index, true);
-                  }}
-                  buttonTextAfterSelection={(selectedItem, index) => {
-                    return selectedItem;
-                  }}
-                  rowTextForSelection={(item, index) => {
-                    return item;
-                  }}
-                  dropdownStyle={styles.dropdownStyle}
-                  renderDropdownIcon={() => {
-                    return (
-                      <Icon
-                        name="chevron-down-outline"
-                        size={24}
-                        color="black"
-                        style={{ marginLeft: 10 }}
-                      />
-                    );
-                  }}
-                />
-                <TouchableOpacity
-                  onPress={() => setModalVisible(true)}
-                  style={{
-                    marginTop: 8,
-                    width: 40,
-                    height: 40,
-                  }}
-                >
-                  <Icon
-                    name="settings"
-                    size={24}
-                    color="white"
-                    style={{ marginLeft: 10 }}
-                  />
-                </TouchableOpacity>
-                <MyModal
-                  modalVisible={modalVisible}
-                  setModalVisible={setModalVisible}
-                />
-              </View>
-              <View style={styles.balanceAndText}>
-                <Text style={styles.fromToText}>From</Text>
-                <Text style={styles.balanceText}>
-                  Balance:{" "}
-                  {!fromTokenBalance ? (
-                    <LoadingIndicator size={10} color="white" />
-                  ) : (
-                    fromTokenBalance
-                  )}
-                </Text>
-              </View>
-              {!loadingFirst ? (
-                <TextInput
-                  keyboardType="numeric"
-                  editable={firstSelectedToken}
-                  value={!inputState ? getAmountIn.toString() : firstText}
-                  onChangeText={async (text) => {
-                    setInputState(true);
-                    if (text.length > 0) {
-                      setFirstText(text);
-                    } else {
-                      setFirstText("");
-                      setAmountOut("");
-                    }
-                  }}
-                  style={styles.textInput}
-                  placeholder={firstSelectedToken ? "0.0" : "Select Token"}
-                  placeholderTextColor="grey"
-                />
-              ) : (
-                <>
-                  <View style={[styles.textInput]}>
-                    <LoadingIndicator size={20} color="black" />
-                  </View>
-                </>
-              )}
-            </View>
+  const checkApprovalFrom = async () => {
+    const fromTokenAddress = getTokenAddress(fromTokenIndex);
 
-            <View style={styles.fromInput}>
-              <View
-                style={{
-                  marginTop: 10,
-                }}
-              >
-                <SelectDropdown
-                  onChangeSearchInputText={(text) => {
-                    console.log(text);
-                  }}
-                  rowTextStyle={styles.dropdownRowText}
-                  dropdownStyle={styles.dropdownStyle}
-                  disableAutoScroll={true}
-                  defaultButtonText={"Select Token"}
-                  buttonStyle={styles.dropdownButtonHalf}
-                  buttonTextStyle={styles.dropdownButtonText}
-                  data={tokenNames}
-                  onSelect={async (selectedItem, index) => {
-                    setToTokenIndex(index);
-                    setSecondSelectedToken(true);
-                    await getTokenBalance(index, false);
-                  }}
-                  buttonTextAfterSelection={(selectedItem, index) => {
-                    return selectedItem;
-                  }}
-                  rowTextForSelection={(item, index) => {
-                    return item;
-                  }}
-                  searchInputStyle={styles.dropdownSearchInput}
-                  renderDropdownIcon={() => {
-                    return (
+    const contractFrom = new ethers.Contract(
+      fromTokenAddress,
+      abiErc20,
+      alchemyProvider
+    );
+
+    const allowanceFrom = await contractFrom.allowance(
+      accounts[0]!,
+      routerAddress
+    );
+
+    const allowanceInEthFrom = ethers.utils
+      .formatUnits(allowanceFrom, getTokenDecimals(fromTokenIndex))
+      .substring(0, 5);
+
+    if (allowanceInEthFrom === "0.0") {
+      setFromApprove(false);
+    } else {
+      setFromApprove(true);
+    }
+  };
+
+  const checkApprovalTo = async () => {
+    const toTokenAddress = getTokenAddress(toTokenIndex);
+
+    const contractTo = new ethers.Contract(
+      toTokenAddress,
+      abiErc20,
+      alchemyProvider
+    );
+
+    const allowanceTo = await contractTo.allowance(accounts[0]!, routerAddress);
+
+    const allowanceInEthTo = ethers.utils
+      .formatUnits(allowanceTo, getTokenDecimals(toTokenIndex))
+      .substring(0, 5);
+
+    if (allowanceInEthTo === "0.0") {
+      setToApprove(false);
+    } else {
+      setToApprove(true);
+    }
+  };
+
+  const addLiquidity = async () => {
+    const iRouter = new ethers.utils.Interface(abiRouter);
+
+    const minLiq = 1010
+
+    const deadline = Math.floor(Date.now() / 1000) + 60 * Number(stateDeadline);
+    let addLiqAbi = "";
+
+    console.log(Number(firstText) * minLiq);
+    
+    if (inputState) {
+      addLiqAbi = iRouter.encodeFunctionData("addLiquidity", [
+        getTokenAddress(fromTokenIndex),
+        getTokenAddress(toTokenIndex),
+        firstText,
+        parseInt(getAmountOut),
+        0,
+        0,
+        accounts[0]!,
+        deadline,
+      ]);
+    } else {
+      addLiqAbi = iRouter.encodeFunctionData("addLiquidity", [
+        getTokenAddress(fromTokenIndex),
+        getTokenAddress(toTokenIndex),
+        parseInt(getAmountIn),
+        secondText,
+        0,
+        0,
+        accounts[0]!,
+        deadline,
+      ]);
+    }
+
+    const tx = {
+      from: accounts[0]!,
+      to: routerAddress,
+      data: addLiqAbi,
+      gasLimit: 1000000,
+      nonce: await alchemyProvider.getTransactionCount(accounts[0]!),
+    };
+
+    try {
+      const send = connector.sendTransaction(tx);
+      console.log("Transaction hash: ", await send);
+      setTransactionTX(await send);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    if (fromTokenIndex !== 0) checkApprovalFrom();
+    if (toTokenIndex !== 0) checkApprovalTo();
+  }, [fromTokenIndex, toTokenIndex, fromApprove, toApprove]);
+
+  return (
+    <>
+      <View style={[styles.container]}>
+        <View style={styles.liqContainer}>
+          <Text style={styles.addLiq}>Add liqudity</Text>
+          <Switch
+            value={liq}
+            onValueChange={() => setLiq(!liq)}
+            style={{
+              transform: [{ scaleX: 1.2 }, { scaleY: 1.2 }],
+            }}
+          />
+        </View>
+
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          <View style={styles.cardContainer}>
+            <View style={styles.header}>
+              <Text style={styles.headerText}>Swap</Text>
+            </View>
+            {connected ? (
+              <View style={styles.textInputs}>
+                <View style={styles.fromInput}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      width: "80%",
+                    }}
+                  >
+                    <SelectDropdown
+                      onChangeSearchInputText={() => {}}
+                      rowTextStyle={styles.dropdownRowText}
+                      disableAutoScroll={true}
+                      defaultButtonText={"Select Token"}
+                      buttonStyle={styles.dropdownButtonHalf}
+                      buttonTextStyle={styles.dropdownButtonText}
+                      data={tokenNames}
+                      onSelect={async (selectedItem, index) => {
+                        setFromTokenIndex(index);
+                        setFirstSelectedToken(true);
+                        await getTokenBalance(index, true);
+                      }}
+                      buttonTextAfterSelection={(selectedItem, index) => {
+                        return selectedItem;
+                      }}
+                      rowTextForSelection={(item, index) => {
+                        return item;
+                      }}
+                      dropdownStyle={styles.dropdownStyle}
+                      renderDropdownIcon={() => {
+                        return (
+                          <Icon
+                            name="chevron-down-outline"
+                            size={24}
+                            color="black"
+                            style={{ marginLeft: 10 }}
+                          />
+                        );
+                      }}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setModalVisible(true)}
+                      style={{
+                        marginTop: 8,
+                        width: 40,
+                        height: 40,
+                      }}
+                    >
                       <Icon
-                        name="chevron-down-outline"
+                        name="settings"
                         size={24}
-                        color="black"
+                        color="white"
                         style={{ marginLeft: 10 }}
                       />
-                    );
-                  }}
-                />
-              </View>
-              <View style={styles.balanceAndText}>
-                <Text style={styles.fromToText}>To</Text>
-                <Text style={styles.balanceText}>
-                  Balance:{" "}
-                  {!toTokenBalance ? (
-                    <LoadingIndicator size={10} color="white" />
-                  ) : (
-                    toTokenBalance
-                  )}
-                </Text>
-              </View>
-              {!loadingSecond ? (
-                <TextInput
-                  keyboardType="numeric"
-                  editable={secondSelectedToken}
-                  value={inputState ? getAmountOut.toString() : secondText}
-                  onChangeText={async (text) => {
-                    setInputState(false);
-                    if (text.length > 0) {
-                      setSecondText(text);
-                    } else {
-                      setSecondText("");
-                      setAmountIn("");
-                    }
-                  }}
-                  style={styles.textInput}
-                  placeholder={secondSelectedToken ? "0.0" : "Select Token"}
-                  placeholderTextColor="grey"
-                />
-              ) : (
-                <>
-                  <View style={[styles.textInput]}>
-                    <LoadingIndicator size={20} color="black" />
+                    </TouchableOpacity>
+                    <MyModal
+                      modalVisible={modalVisible}
+                      setModalVisible={setModalVisible}
+                    />
                   </View>
-                </>
-              )}
-            </View>
-          </View>
-        ) : (
-          <Text
-            style={{
-              color: "white",
-              fontSize: 20,
-              fontWeight: "bold",
-            }}
-          >
-            PLEASE CONNECT WALLET FIRST
-          </Text>
-        )}
-        {connected ? (
-          <>
-            {transactionTX.length > 0 ? (
-              <TouchableOpacity
-                onPress={() => {
-                  Linking.openURL(
-                    "https://goerli.etherscan.io/tx/" + transactionTX
-                  );
+                  <View style={styles.balanceAndText}>
+                    <Text style={styles.fromToText}>From</Text>
+                    <Text style={styles.balanceText}>
+                      Balance:{" "}
+                      {!fromTokenBalance ? (
+                        <LoadingIndicator size={10} color="white" />
+                      ) : (
+                        fromTokenBalance
+                      )}
+                    </Text>
+                  </View>
+                  {!loadingFirst ? (
+                    <TextInput
+                      keyboardType="numeric"
+                      editable={firstSelectedToken}
+                      value={!inputState ? getAmountIn.toString() : firstText}
+                      onChangeText={async (text) => {
+                        setInputState(true);
+                        const bigText = new BigNumber(text);
+                        const bigTen = new BigNumber(10);
+                        const bigTenPow = bigTen.pow(
+                          getTokenDecimals(fromTokenIndex)
+                        );
+                        const result = bigText.multipliedBy(bigTenPow);
+
+                        if (text.length > 0) {
+                          setFirstText(text);
+                        } else {
+                          setFirstText("");
+                          setAmountOut("");
+                        }
+                      }}
+                      style={styles.textInput}
+                      placeholder={firstSelectedToken ? "0.0" : "Select Token"}
+                      placeholderTextColor="grey"
+                    />
+                  ) : (
+                    <>
+                      <View style={[styles.textInput]}>
+                        <LoadingIndicator size={20} color="black" />
+                      </View>
+                    </>
+                  )}
+                </View>
+
+                <View style={styles.fromInput}>
+                  <View
+                    style={{
+                      marginTop: 10,
+                    }}
+                  >
+                    <SelectDropdown
+                      onChangeSearchInputText={() => {}}
+                      rowTextStyle={styles.dropdownRowText}
+                      dropdownStyle={styles.dropdownStyle}
+                      disableAutoScroll={true}
+                      defaultButtonText={"Select Token"}
+                      buttonStyle={styles.dropdownButtonHalf}
+                      buttonTextStyle={styles.dropdownButtonText}
+                      data={tokenNames}
+                      onSelect={async (selectedItem, index) => {
+                        setToTokenIndex(index);
+                        setSecondSelectedToken(true);
+                        await getTokenBalance(index, false);
+                      }}
+                      buttonTextAfterSelection={(selectedItem, index) => {
+                        return selectedItem;
+                      }}
+                      rowTextForSelection={(item, index) => {
+                        return item;
+                      }}
+                      searchInputStyle={styles.dropdownSearchInput}
+                      renderDropdownIcon={() => {
+                        return (
+                          <Icon
+                            name="chevron-down-outline"
+                            size={24}
+                            color="black"
+                            style={{ marginLeft: 10 }}
+                          />
+                        );
+                      }}
+                    />
+                  </View>
+                  <View style={styles.balanceAndText}>
+                    <Text style={styles.fromToText}>To</Text>
+                    <Text style={styles.balanceText}>
+                      Balance:{" "}
+                      {!toTokenBalance ? (
+                        <LoadingIndicator size={10} color="white" />
+                      ) : (
+                        toTokenBalance
+                      )}
+                    </Text>
+                  </View>
+                  {!loadingSecond ? (
+                    <TextInput
+                      keyboardType="numeric"
+                      editable={secondSelectedToken}
+                      value={inputState ? getAmountOut.toString() : secondText}
+                      onChangeText={async (text) => {
+                        setInputState(false);
+                        const bigText = new BigNumber(text);
+                        const bigTen = new BigNumber(10);
+                        const bigTenPow = bigTen.pow(
+                          getTokenDecimals(fromTokenIndex)
+                        );
+                        const result = bigText.multipliedBy(bigTenPow);
+
+                        if (text.length > 0) {
+                          setSecondText(text);
+                        } else {
+                          setSecondText("");
+                          setAmountIn("");
+                        }
+                      }}
+                      style={styles.textInput}
+                      placeholder={secondSelectedToken ? "0.0" : "Select Token"}
+                      placeholderTextColor="grey"
+                    />
+                  ) : (
+                    <>
+                      <View style={[styles.textInput]}>
+                        <LoadingIndicator size={20} color="black" />
+                      </View>
+                    </>
+                  )}
+                </View>
+              </View>
+            ) : (
+              <Text
+                style={{
+                  color: "white",
+                  fontSize: 20,
+                  fontWeight: "bold",
                 }}
               >
-                <Text style={styles.txStyle}>Latest Transaction:</Text>
-                <Text style={styles.txStyle}>
-                  {transactionTX.length > 0
-                    ? transactionTX.substring(0, 10) +
-                      "..." +
-                      transactionTX.substring(transactionTX.length - 10)
-                    : ""}
+                PLEASE CONNECT WALLET FIRST
+              </Text>
+            )}
+            {connected ? (
+              <>
+                {transactionTX.length > 0 ? (
+                  <TouchableOpacity
+                    onPress={() => {
+                      Linking.openURL(
+                        "https://goerli.etherscan.io/tx/" + transactionTX
+                      );
+                    }}
+                  >
+                    <Text style={styles.txStyle}>Latest Transaction:</Text>
+                    <Text style={styles.txStyle}>
+                      {transactionTX.length > 0
+                        ? transactionTX.substring(0, 10) +
+                          "..." +
+                          transactionTX.substring(transactionTX.length - 10)
+                        : ""}
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <></>
+                )}
+                {(fromTokenIndex !== null || toTokenIndex !== null) &&
+                (tokenNames[fromTokenIndex] === "ETH" ||
+                  tokenNames[toTokenIndex] === "ETH" ||
+                  (fromApprove && toApprove)) ? (
+                  liq ? (
+                    <CustomButton
+                      title="Add liquidity"
+                      onPress={() => {
+                        if (firstText || secondText) {
+                          addLiquidity();
+                        } else {
+                          alert("Please enter amount to add liquidity");
+                        }
+                      }}
+                      style={{ marginTop: 20 }}
+                    />
+                  ) : (
+                    <CustomButton
+                      title="Swap"
+                      onPress={async () => {
+                        if (firstText || secondText) {
+                          swapTokens();
+                        } else {
+                          alert("Please enter amount to swap");
+                        }
+                      }}
+                      style={{ marginTop: 20 }}
+                    />
+                  )
+                ) : (
+                  <>
+                    {fromTokenIndex !== null && !fromApprove && (
+                      <CustomButton
+                        title={"Approve" + " " + tokenNames[fromTokenIndex]}
+                        onPress={() => {
+                          sendApprovalFrom(
+                            getTokenAddress,
+                            fromTokenIndex,
+                            alchemyProvider,
+                            accounts,
+                            routerAddress,
+                            connector,
+                            setTransactionTX
+                          );
+                        }}
+                        style={{ marginTop: 20 }}
+                      />
+                    )}
+                    {toTokenIndex !== null && !toApprove && (
+                      <CustomButton
+                        title={"Approve" + " " + tokenNames[toTokenIndex]}
+                        onPress={() => {
+                          sendApprovalTo(
+                            getTokenAddress,
+                            toTokenIndex,
+                            alchemyProvider,
+                            accounts,
+                            routerAddress,
+                            connector,
+                            setTransactionTX
+                          );
+                        }}
+                        style={{ marginTop: 20 }}
+                      />
+                    )}
+                  </>
+                )}
+              </>
+            ) : (
+              <TouchableOpacity
+                style={styles.connectButton}
+                onPress={() => {
+                  navigation.navigate("Settings");
+                }}
+              >
+                <Text style={styles.connectedTextButton}>
+                  {connectedWallet && connected
+                    ? "Connected"
+                    : "Go to Settings"}
                 </Text>
               </TouchableOpacity>
-            ) : (
-              <></>
             )}
-            <TouchableOpacity
-              style={styles.disconnectButton}
-              onPress={() => {
-                if (firstText || secondText) {
-                  swapTokens();
-                } else {
-                  alert("Please enter amount to swap");
-                }
-              }}
-            >
-              <Text style={styles.connectedText}>Swap</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <TouchableOpacity
-            style={styles.connectButton}
-            onPress={() => {
-              navigation.navigate("Settings");
-            }}
-          >
-            <Text style={styles.connectedTextButton}>
-              {connectedWallet && connected ? "Connected" : "Go to Settings"}
-            </Text>
-          </TouchableOpacity>
-        )}
+          </View>
+        </ScrollView>
       </View>
-    </View>
+    </>
   );
 };
 
 export default Swap;
 
 const styles = StyleSheet.create({
+  liqContainer: {
+    backgroundColor: "#444",
+    borderBottomEndRadius: 20,
+    borderBottomStartRadius: 20,
+    paddingLeft: 40,
+    paddingRight: 40,
+    paddingTop: 40,
+    paddingBottom: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    alignSelf: "center",
+  },
+  addLiq: {
+    fontSize: 20,
+    color: "white",
+    fontWeight: "bold",
+    marginTop: 10,
+    textAlign: "center",
+  },
   txStyle: {
     color: "white",
     fontSize: 16,
@@ -561,6 +785,11 @@ const styles = StyleSheet.create({
   header: {
     position: "absolute",
     top: 20,
+  },
+  scroll: {
+    justifyContent: "center",
+    alignItems: "center",
+    flex: 1,
   },
   connectButton: {
     marginTop: 20,

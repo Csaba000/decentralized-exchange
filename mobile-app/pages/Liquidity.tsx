@@ -15,9 +15,69 @@ import { Picker, onOpen } from "react-native-actions-sheet-picker";
 import SelectDropdown from "react-native-select-dropdown";
 import Icon from "react-native-vector-icons/Ionicons";
 import Animated from "react-native-reanimated";
+import useGetTokenData from "../ui-logic/useGetTokenData";
+import { ethers } from "ethers";
+import useAlchemyProvider from "../ui-logic/useAlchemy";
+import abiErc20 from "../contract/abiErc20.json";
+import { useWalletConnect } from "@walletconnect/react-native-dapp";
 
 const Liquidity = () => {
   const [liq, setLiq] = useState(false);
+  const { data, getTokenNames } = useGetTokenData();
+
+  const [fromTokenIndex, setFromTokenIndex] = useState(0);
+  const [toTokenIndex, setToTokenIndex] = useState(0);
+
+  const [firstSelectedToken, setFirstSelectedToken] = useState(false);
+  const [secondSelectedToken, setSecondSelectedToken] = useState(false);
+
+  const [fromTokenBalance, setFromTokenBalance] = useState("");
+  const [toTokenBalance, setToTokenBalance] = useState("");
+
+  const { connected, accounts } = useWalletConnect();
+
+  const { alchemyProvider, getBalance } = useAlchemyProvider();
+
+  const tokenNames = getTokenNames().map((token: any) => token.symbol);
+  const tokenAddresses = getTokenNames().map((token: any) => token.address);
+  const tokenIds = getTokenNames().map((token: any) => token.id);
+  const tokenDecimals = getTokenNames().map((token: any) => token.decimals);
+
+  const getTokenAddress = (tokenId: number) => {
+    return tokenAddresses[tokenIds.indexOf(tokenId)];
+  };
+
+  const getTokenDecimals = (tokenId: number) => {
+    return tokenDecimals[tokenIds.indexOf(tokenId)];
+  };
+
+  const getTokenBalance = async (tokenId: number, from: boolean) => {
+    const tokenAddress = getTokenAddress(tokenId);
+
+    if (tokenAddress === "") {
+      const balInEth = ethers.utils
+        .formatUnits(await getBalance())
+        .substring(0, 5);
+      from ? setFromTokenBalance(balInEth) : setToTokenBalance(balInEth);
+      return;
+    }
+
+    const contractAddress = tokenAddress;
+
+    const contract = new ethers.Contract(
+      contractAddress,
+      abiErc20,
+      alchemyProvider
+    );
+
+    const balanceOf = await contract.balanceOf(accounts[0]!);
+
+    const balance = parseFloat(
+      ethers.utils.formatUnits(balanceOf, getTokenDecimals(tokenId))
+    ).toFixed(2);
+
+    from ? setFromTokenBalance(balance) : setToTokenBalance(balance);
+  };
 
   return (
     <View style={styles.container}>
@@ -30,23 +90,17 @@ const Liquidity = () => {
           <View style={styles.textInputs}>
             <View style={styles.fromInput}>
               <SelectDropdown
+                onChangeSearchInputText={() => {}}
                 rowTextStyle={styles.dropdownRowText}
                 disableAutoScroll={true}
-                defaultButtonText="ETH"
+                defaultButtonText={"Select Token"}
                 buttonStyle={styles.dropdownButtonHalf}
                 buttonTextStyle={styles.dropdownButtonText}
-                data={[
-                  "ETH",
-                  "BTC",
-                  "USDT",
-                  "BNB",
-                  "ADA",
-                  "XRP",
-                  "DOGE",
-                  "DOT",
-                ]}
-                onSelect={(selectedItem, index) => {
-                  console.log(selectedItem, index);
+                data={tokenNames}
+                onSelect={async (selectedItem, index) => {
+                  setFromTokenIndex(index);
+                  setFirstSelectedToken(true);
+                  await getTokenBalance(index, true);
                 }}
                 buttonTextAfterSelection={(selectedItem, index) => {
                   return selectedItem;
@@ -55,7 +109,6 @@ const Liquidity = () => {
                   return item;
                 }}
                 dropdownStyle={styles.dropdownStyle}
-                searchInputStyle={styles.dropdownSearchInput}
                 renderDropdownIcon={() => {
                   return (
                     <Icon

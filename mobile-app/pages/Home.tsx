@@ -1,15 +1,17 @@
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
+  Image,
   TextInput,
   Button,
   TouchableOpacity,
   Modal,
   Pressable,
   Linking,
+  FlatList,
 } from "react-native";
 import { Picker, onOpen } from "react-native-actions-sheet-picker";
 import SelectDropdown from "react-native-select-dropdown";
@@ -17,21 +19,49 @@ import Icon from "react-native-vector-icons/Ionicons";
 import Liquidity from "./Liquidity";
 import Swap from "./Swap";
 import Header from "../components/Header";
+import useCoinsApi from "../ui-logic/useCoinsApi";
+import LoadingIndicator from "../components/LoadingIndicator/LoadingIndicator";
+import axios from "axios";
 
 const Home = () => {
-  const [selected, setSelected] = useState(undefined);
-  const link =
-    "wss://b.bridge.walletconnect.org?env=browser&host=&protocol=wc&version=1";
+  // const { coins, loading } = useCoinsApi();
+
+  // if (loading) {
+  //   return (
+  //     <View style={styles.flex}>
+  //       <LoadingIndicator size={"large"} />
+  //     </View>
+  //   );
+  // }
+
+  const renderItem = ({ item }: any) => (
+    <View
+      style={{
+        backgroundColor: "white",
+        width: "95%",
+        borderRadius: 20,
+        margin: 20,
+        height: 80,
+      }}
+    >
+      <Text>{item.name}</Text>
+      <Text>{item.symbol}</Text>
+      <Text>{item.current_price}</Text>
+      <Image style={{ width: 50, height: 50 }} source={{ uri: item.image }} />
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <Header title="Dex" />
       <View style={styles.pageContainer}>
         <View style={styles.cardContainer}>
-          <Text>Hello</Text>
-          <Button
-            title="Open Modal"
-            onPress={() => Linking.openURL("link")}
-          />
+          {/* <FlatList
+            data={coins}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            // pagingEnabled
+          /> */}
         </View>
       </View>
     </View>
@@ -46,6 +76,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#grey",
     alignItems: "center",
     justifyContent: "center",
+  },
+  flex: {
+    flex: 1,
   },
   pageContainer: {
     width: "100%",
