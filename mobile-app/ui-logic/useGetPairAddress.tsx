@@ -36,7 +36,8 @@ const useInitAll = () => {
         return response.data;
       })
       .catch(function (error) {
-        console.log("ERROR", error);
+        console.log("ERROR", error.message);
+        setPoolContract(null);
       });
   };
 

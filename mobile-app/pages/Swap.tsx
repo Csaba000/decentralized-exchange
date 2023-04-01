@@ -61,6 +61,7 @@ const Swap = () => {
   const { connected, accounts } = useWalletConnect();
   const { connect, connectedWallet } = useConnectToMetamask();
 
+  const WETHAddress = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6";
   // const { routerContract } = useRouterContract();
 
   const [fromTokenBalance, setFromTokenBalance] = useState("");
@@ -149,6 +150,8 @@ const Swap = () => {
 
     if (!poolContract) {
       alert("There is no pool for this pair! Please try another pair.");
+      console.log("There is no pool for this pair! Please try another pair.");
+
       return;
     }
     setLoadingSecond(true);
@@ -244,14 +247,19 @@ const Swap = () => {
     return tokenAddresses[tokenIds.indexOf(tokenId)];
   };
 
+  const getTokenName = (tokenId: number) => {
+    return tokenNames[tokenIds.indexOf(tokenId)];
+  }
+
   const getTokenDecimals = (tokenId: number) => {
     return tokenDecimals[tokenIds.indexOf(tokenId)];
   };
 
   const getTokenBalance = async (tokenId: number, from: boolean) => {
     const tokenAddress = getTokenAddress(tokenId);
-
-    if (tokenAddress === "") {
+    const tokenName = getTokenName(tokenId)
+    
+    if (tokenName === "ETH") {
       const balInEth = ethers.utils
         .formatUnits(await getBalance())
         .substring(0, 5);
@@ -276,7 +284,41 @@ const Swap = () => {
     from ? setFromTokenBalance(balance) : setToTokenBalance(balance);
   };
 
-  const swapTokens = async () => {
+  //7 swap
+  const swapETHForExactTokens = async () => {
+    const iRouter = new ethers.utils.Interface(abiRouter);
+
+    const deadline = Math.floor(Date.now() / 1000) + 60 * Number(stateDeadline);
+
+    const swapABI = iRouter.encodeFunctionData("swapETHForExactTokens", [
+      secondText,
+      [WETHAddress, getTokenAddress(toTokenIndex)],
+      accounts[0]!,
+      deadline,
+    ]);
+
+    const tx = {
+      from: accounts[0]!,
+      to: routerAddress,
+      data: swapABI,
+      gasLimit: 1000000,
+      nonce: await alchemyProvider.getTransactionCount(accounts[0]!),
+      value: Number(getAmountIn),
+    };
+
+    try {
+      const send = connector.sendTransaction(tx);
+      console.log("Transaction hash: ", await send);
+      setTransactionTX(await send);
+      getTokenBalance(fromTokenIndex, true);
+      getTokenBalance(toTokenIndex, false);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  //10 swap
+  const swapExactTokensForTokens = async () => {
     const iRouter = new ethers.utils.Interface(abiRouter);
 
     const deadline = Math.floor(Date.now() / 1000) + 60 * Number(stateDeadline);
@@ -296,6 +338,44 @@ const Swap = () => {
       deadline,
     ]);
 
+    const tx = {
+      from: accounts[0]!,
+      to: routerAddress,
+      data: swapABI,
+      gasLimit: 1000000,
+      nonce: await alchemyProvider.getTransactionCount(accounts[0]!),
+    };
+
+    try {
+      const send = connector.sendTransaction(tx);
+      console.log("Transaction hash: ", await send);
+      setTransactionTX(await send);
+      getTokenBalance(fromTokenIndex, true);
+      getTokenBalance(toTokenIndex, false);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  //12 swap
+  const swapTokensForExactTokens = async () => {
+    const iRouter = new ethers.utils.Interface(abiRouter);
+
+    const deadline = Math.floor(Date.now() / 1000) + 60 * Number(stateDeadline);
+
+    const slippage = parseInt(stateSlippage) / 100;
+
+    const slippageValue = parseInt(getAmountIn) * slippage;
+
+    const maxValue = parseInt(getAmountIn) + slippageValue;
+
+    const swapABI = iRouter.encodeFunctionData("swapTokensForExactTokens", [
+      secondText,
+      Math.round(maxValue),
+      [getTokenAddress(fromTokenIndex), getTokenAddress(toTokenIndex)],
+      accounts[0]!,
+      deadline,
+    ]);
     const tx = {
       from: accounts[0]!,
       to: routerAddress,
@@ -365,13 +445,13 @@ const Swap = () => {
   const addLiquidity = async () => {
     const iRouter = new ethers.utils.Interface(abiRouter);
 
-    const minLiq = 1010
+    const minLiq = 1010;
 
     const deadline = Math.floor(Date.now() / 1000) + 60 * Number(stateDeadline);
     let addLiqAbi = "";
 
     console.log(Number(firstText) * minLiq);
-    
+
     if (inputState) {
       addLiqAbi = iRouter.encodeFunctionData("addLiquidity", [
         getTokenAddress(fromTokenIndex),
@@ -440,7 +520,9 @@ const Swap = () => {
         >
           <View style={styles.cardContainer}>
             <View style={styles.header}>
-              <Text style={styles.headerText}>Swap</Text>
+              <Text style={styles.headerText}>
+                {liq ? "Add liquidity" : "Swap"}
+              </Text>
             </View>
             {connected ? (
               <View style={styles.textInputs}>
@@ -521,13 +603,6 @@ const Swap = () => {
                       value={!inputState ? getAmountIn.toString() : firstText}
                       onChangeText={async (text) => {
                         setInputState(true);
-                        const bigText = new BigNumber(text);
-                        const bigTen = new BigNumber(10);
-                        const bigTenPow = bigTen.pow(
-                          getTokenDecimals(fromTokenIndex)
-                        );
-                        const result = bigText.multipliedBy(bigTenPow);
-
                         if (text.length > 0) {
                           setFirstText(text);
                         } else {
@@ -546,6 +621,21 @@ const Swap = () => {
                       </View>
                     </>
                   )}
+                  <View
+                    style={{
+                      position: "absolute",
+                      bottom: 0,
+                    }}
+                  >
+                    <Text style={{ color: "white" }}>
+                      Value:{" "}
+                      {new BigNumber(firstText)
+                        .dividedBy(
+                          new BigNumber(10 ** getTokenDecimals(fromTokenIndex))
+                        )
+                        .toString()}{" "}
+                    </Text>
+                  </View>
                 </View>
 
                 <View style={styles.fromInput}>
@@ -605,12 +695,12 @@ const Swap = () => {
                       value={inputState ? getAmountOut.toString() : secondText}
                       onChangeText={async (text) => {
                         setInputState(false);
-                        const bigText = new BigNumber(text);
-                        const bigTen = new BigNumber(10);
-                        const bigTenPow = bigTen.pow(
-                          getTokenDecimals(fromTokenIndex)
-                        );
-                        const result = bigText.multipliedBy(bigTenPow);
+                        // const bigText = new BigNumber(text);
+                        // const bigTen = new BigNumber(10);
+                        // const bigTenPow = bigTen.pow(
+                        //   getTokenDecimals(fromTokenIndex)
+                        // );
+                        // const result = bigText.multipliedBy(bigTenPow);
 
                         if (text.length > 0) {
                           setSecondText(text);
@@ -630,6 +720,21 @@ const Swap = () => {
                       </View>
                     </>
                   )}
+                  <View
+                    style={{
+                      position: "absolute",
+                      bottom: 0,
+                    }}
+                  >
+                    <Text style={{ color: "white" }}>
+                      Value:{" "}
+                      {new BigNumber(secondText)
+                        .dividedBy(
+                          new BigNumber(10 ** getTokenDecimals(toTokenIndex))
+                        )
+                        .toString()}{" "}
+                    </Text>
+                  </View>
                 </View>
               </View>
             ) : (
@@ -686,7 +791,15 @@ const Swap = () => {
                       title="Swap"
                       onPress={async () => {
                         if (firstText || secondText) {
-                          swapTokens();
+                          if (inputState) {
+                            swapExactTokensForTokens();
+                          } else {
+                            if (tokenNames[fromTokenIndex] === "ETH") {
+                              swapETHForExactTokens();
+                            } else {
+                              swapTokensForExactTokens();
+                            }
+                          }
                         } else {
                           alert("Please enter amount to swap");
                         }
@@ -827,6 +940,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    width: "100%",
     backgroundColor: "grey",
     alignItems: "center",
     justifyContent: "center",
@@ -850,6 +964,7 @@ const styles = StyleSheet.create({
     height: 600,
     backgroundColor: "#333",
     width: "90%",
+    padding: 20,
     alignItems: "center",
     justifyContent: "center",
   },
