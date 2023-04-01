@@ -395,6 +395,8 @@ const Swap = () => {
     }
   };
 
+  //TODO - 3 swap, remove liduity, automatic insert to db when add liquidity
+
   const checkApprovalFrom = async () => {
     const fromTokenAddress = getTokenAddress(fromTokenIndex);
 
