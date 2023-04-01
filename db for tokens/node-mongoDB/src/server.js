@@ -94,6 +94,9 @@ MongoClient.connect(
           if (docs.length !== 0) {
             res.send(docs[0].address);
           }
+          else {
+            res.status(404).send("No pool found");
+          }
         });
     });
 

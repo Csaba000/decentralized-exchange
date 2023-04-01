@@ -19,9 +19,9 @@ export async function connectToCluster(uri) {
 
 export async function createPoolsDocument(collection) {
   const poolsDocument = {
-    address: "0x9D67D3969e45aDf9786F95A1F874C0E8d476630F",
-    pair1_address: "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6",
-    pair2_address: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+    address: "0xCd37E86b6AAd6c817eec7342773469ef854263a4",
+    pair1_address: "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6", 
+    pair2_address: "0xC04B0d3107736C32e19F1c62b2aF67BE61d63a05",
   };
 
   await collection.insertOne(poolsDocument);
