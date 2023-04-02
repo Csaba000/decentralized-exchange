@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Modal,
   Linking,
   ScrollView,
   RefreshControl,
@@ -30,22 +29,21 @@ import { useNavigation } from "@react-navigation/native";
 import useDebounce from "../ui-logic/useDebounce";
 import { Skeleton } from "@rneui/themed";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated from "react-native-reanimated";
+import Animated, { JumpingTransition } from "react-native-reanimated";
 import MyModal from "../components/Modal";
 
 import { ModalContext } from "../context/ModalProvider";
-import { loadPartialConfig } from "@babel/core";
+
 import { sort } from "../utils/sort";
 import CustomButton from "../components/Button/CustomButton";
-import {
-  checkApprovalFrom,
-  checkApprovalTo,
-} from "../ui-logic/approve/checkApprove";
+import Slider from "@react-native-community/slider";
 
 import {
   sendApprovalFrom,
   sendApprovalTo,
 } from "../ui-logic/approve/sendApprove";
+
+import Modal from "react-native-modal";
 
 const Swap = () => {
   const navigation = useNavigation<any>();
@@ -117,6 +115,16 @@ const Swap = () => {
   const [toApprove, setToApprove] = useState(false);
 
   const [transactionTX, setTransactionTX] = useState("");
+
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
+  const [poolBalance, setPoolBalance] = useState(0);
+
+  const [sliderValue, setSliderValue] = useState(0);
+
+  const toggleModal = () => {
+    setIsModalVisible(!isModalVisible);
+  };
 
   useEffect(() => {
     if (data) {
@@ -249,7 +257,7 @@ const Swap = () => {
 
   const getTokenName = (tokenId: number) => {
     return tokenNames[tokenIds.indexOf(tokenId)];
-  }
+  };
 
   const getTokenDecimals = (tokenId: number) => {
     return tokenDecimals[tokenIds.indexOf(tokenId)];
@@ -257,8 +265,8 @@ const Swap = () => {
 
   const getTokenBalance = async (tokenId: number, from: boolean) => {
     const tokenAddress = getTokenAddress(tokenId);
-    const tokenName = getTokenName(tokenId)
-    
+    const tokenName = getTokenName(tokenId);
+
     if (tokenName === "ETH") {
       const balInEth = ethers.utils
         .formatUnits(await getBalance())
@@ -317,6 +325,85 @@ const Swap = () => {
     }
   };
 
+  //8 swap
+  const swapExactETHForTokens = async () => {
+    const iRouter = new ethers.utils.Interface(abiRouter);
+
+    const deadline = Math.floor(Date.now() / 1000) + 60 * Number(stateDeadline);
+
+    const slippage = parseInt(stateSlippage) / 100;
+
+    const minValue = parseInt(getAmountOut) * slippage;
+
+    const remainingAmount = parseInt(getAmountOut) - minValue;
+
+    console.log(getAmountIn, firstText);
+
+    const swapABI = iRouter.encodeFunctionData("swapExactETHForTokens", [
+      Math.round(remainingAmount),
+      [WETHAddress, getTokenAddress(toTokenIndex)],
+      accounts[0]!,
+      deadline,
+    ]);
+    const tx = {
+      from: accounts[0]!,
+      to: routerAddress,
+      data: swapABI,
+      gasLimit: 1000000,
+      nonce: await alchemyProvider.getTransactionCount(accounts[0]!),
+      value: Number(getAmountIn),
+    };
+
+    try {
+      const send = connector.sendTransaction(tx);
+      console.log("Transaction hash: ", await send);
+      setTransactionTX(await send);
+      getTokenBalance(fromTokenIndex, true);
+      getTokenBalance(toTokenIndex, false);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  //9 swap
+  const swapExactTokensForETH = async () => {
+    const iRouter = new ethers.utils.Interface(abiRouter);
+
+    const deadline = Math.floor(Date.now() / 1000) + 60 * Number(stateDeadline);
+
+    const slippage = parseInt(stateSlippage) / 100;
+
+    const minValue = parseInt(getAmountOut) * slippage;
+
+    const remainingAmount = parseInt(getAmountOut) - minValue;
+
+    const swapABI = iRouter.encodeFunctionData("swapExactTokensForETH", [
+      firstText,
+      Math.round(remainingAmount),
+      [getTokenAddress(fromTokenIndex), WETHAddress],
+      accounts[0]!,
+      deadline,
+    ]);
+
+    const tx = {
+      from: accounts[0]!,
+      to: routerAddress,
+      data: swapABI,
+      gasLimit: 1000000,
+      nonce: await alchemyProvider.getTransactionCount(accounts[0]!),
+    };
+
+    try {
+      const send = connector.sendTransaction(tx);
+      console.log("Transaction hash: ", await send);
+      setTransactionTX(await send);
+      getTokenBalance(fromTokenIndex, true);
+      getTokenBalance(toTokenIndex, false);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   //10 swap
   const swapExactTokensForTokens = async () => {
     const iRouter = new ethers.utils.Interface(abiRouter);
@@ -334,6 +421,45 @@ const Swap = () => {
       firstText,
       Math.round(remainingAmount),
       [getTokenAddress(fromTokenIndex), getTokenAddress(toTokenIndex)],
+      accounts[0]!,
+      deadline,
+    ]);
+
+    const tx = {
+      from: accounts[0]!,
+      to: routerAddress,
+      data: swapABI,
+      gasLimit: 1000000,
+      nonce: await alchemyProvider.getTransactionCount(accounts[0]!),
+    };
+
+    try {
+      const send = connector.sendTransaction(tx);
+      console.log("Transaction hash: ", await send);
+      setTransactionTX(await send);
+      getTokenBalance(fromTokenIndex, true);
+      getTokenBalance(toTokenIndex, false);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  //11 swap
+  const swapTokensForExactETH = async () => {
+    const iRouter = new ethers.utils.Interface(abiRouter);
+
+    const deadline = Math.floor(Date.now() / 1000) + 60 * Number(stateDeadline);
+
+    const slippage = parseInt(stateSlippage) / 100;
+
+    const slippageValue = parseInt(getAmountIn) * slippage;
+
+    const maxValue = parseInt(getAmountIn) + slippageValue;
+
+    const swapABI = iRouter.encodeFunctionData("swapTokensForExactETH", [
+      secondText,
+      Math.round(maxValue),
+      [getTokenAddress(fromTokenIndex), WETHAddress],
       accounts[0]!,
       deadline,
     ]);
@@ -452,8 +578,6 @@ const Swap = () => {
     const deadline = Math.floor(Date.now() / 1000) + 60 * Number(stateDeadline);
     let addLiqAbi = "";
 
-    console.log(Number(firstText) * minLiq);
-
     if (inputState) {
       addLiqAbi = iRouter.encodeFunctionData("addLiquidity", [
         getTokenAddress(fromTokenIndex),
@@ -495,6 +619,26 @@ const Swap = () => {
     }
   };
 
+  const getPoolTokenBalance = async () => {
+    const balance = await poolContract.balanceOf(accounts[0]!);
+    const poolDecimals = await poolContract.decimals();
+
+    if (balance > 0) {
+      setPoolBalance(balance / 10 ** poolDecimals);
+    } else {
+      setPoolBalance(0);
+    }
+  };
+
+  useEffect(() => {
+    if (!poolAddress) {
+      setPoolBalance(0);
+    }
+    if (poolContract) {
+      getPoolTokenBalance();
+    }
+  }, [poolContract, fromTokenIndex, toTokenIndex]);
+
   useEffect(() => {
     if (fromTokenIndex !== 0) checkApprovalFrom();
     if (toTokenIndex !== 0) checkApprovalTo();
@@ -504,6 +648,96 @@ const Swap = () => {
     <>
       <View style={[styles.container]}>
         <View style={styles.liqContainer}>
+          <Modal
+            onBackdropPress={() => setIsModalVisible(false)}
+            onBackButtonPress={() => setIsModalVisible(false)}
+            isVisible={isModalVisible}
+            swipeDirection="down"
+            onSwipeComplete={toggleModal}
+            animationIn="slideInUp"
+            animationOut="slideOutDown"
+            animationInTiming={300}
+            animationOutTiming={300}
+            backdropTransitionInTiming={300}
+            backdropTransitionOutTiming={300}
+            style={styles.modal}
+          >
+            <View style={styles.modalContent}>
+              <View style={{ alignItems: "center" }}>
+                <View style={styles.barIcon} />
+                {poolBalance > 0 &&
+                firstSelectedToken &&
+                secondSelectedToken ? (
+                  <>
+                    <View style={styles.top}>
+                      <Text style={styles.tokenName}>
+                        {getTokenName(fromTokenIndex)}
+                      </Text>
+                      <Text>Bal: </Text>
+                    </View>
+                    <View style={styles.bottom}>
+                      <Text style={styles.tokenName}>
+                        {getTokenName(toTokenIndex)}
+                      </Text>
+                      <Text>Bal: </Text>
+                    </View>
+                    <Text style={[styles.tokenName, { fontSize: 16 }]}>
+                      LP balance: {poolBalance.toFixed(4)}
+                    </Text>
+                    <Text>Slider value: {sliderValue}%</Text>
+                  </>
+                ) : (
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: 200,
+                    }}
+                  >
+                    <Text style={styles.tokenName}>
+                      You don't have any pools for this token pair
+                    </Text>
+                  </View>
+                )}
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 200,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 300,
+                    }}
+                  >
+                    {poolBalance > 0 &&
+                    firstSelectedToken &&
+                    secondSelectedToken ? (
+                      <Slider
+                        onValueChange={setSliderValue}
+                        minimumValue={0}
+                        maximumValue={100}
+                        minimumTrackTintColor="#000000"
+                        maximumTrackTintColor="#000000"
+                      />
+                    ) : null}
+                  </View>
+                </View>
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 400,
+                  }}
+                >
+                  <CustomButton
+                    title="Remove liquidity"
+                    onPress={() => {
+                      getPoolTokenBalance();
+                    }}
+                  />
+                </View>
+              </View>
+            </View>
+          </Modal>
           <Text style={styles.addLiq}>Add liqudity</Text>
           <Switch
             value={liq}
@@ -522,9 +756,41 @@ const Swap = () => {
         >
           <View style={styles.cardContainer}>
             <View style={styles.header}>
-              <Text style={styles.headerText}>
-                {liq ? "Add liquidity" : "Swap"}
-              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  // justifyContent: "space-between",
+                  width: "100%",
+                }}
+              >
+                <Text style={styles.headerText}>
+                  {liq ? "Add liquidity" : "Swap"}
+                </Text>
+                {liq ? (
+                  <TouchableOpacity
+                    onPress={() => toggleModal()}
+                    style={{
+                      backgroundColor: "#807e7e",
+                      borderRadius: 6,
+                      width: 100,
+                      height: 35,
+                      marginTop: 5,
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: "#fff",
+                        fontSize: 12,
+                        textAlign: "center",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      Remove liquidity
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
             </View>
             {connected ? (
               <View style={styles.textInputs}>
@@ -590,12 +856,7 @@ const Swap = () => {
                   <View style={styles.balanceAndText}>
                     <Text style={styles.fromToText}>From</Text>
                     <Text style={styles.balanceText}>
-                      Balance:{" "}
-                      {!fromTokenBalance ? (
-                        <LoadingIndicator size={10} color="white" />
-                      ) : (
-                        fromTokenBalance
-                      )}
+                      Balance: {!fromTokenBalance ? "—" : fromTokenBalance}
                     </Text>
                   </View>
                   {!loadingFirst ? (
@@ -631,11 +892,15 @@ const Swap = () => {
                   >
                     <Text style={{ color: "white" }}>
                       Value:{" "}
-                      {new BigNumber(firstText)
-                        .dividedBy(
-                          new BigNumber(10 ** getTokenDecimals(fromTokenIndex))
-                        )
-                        .toString()}{" "}
+                      {firstText
+                        ? new BigNumber(firstText)
+                            .dividedBy(
+                              new BigNumber(
+                                10 ** getTokenDecimals(fromTokenIndex)
+                              )
+                            )
+                            .toString()
+                        : "—"}
                     </Text>
                   </View>
                 </View>
@@ -682,12 +947,7 @@ const Swap = () => {
                   <View style={styles.balanceAndText}>
                     <Text style={styles.fromToText}>To</Text>
                     <Text style={styles.balanceText}>
-                      Balance:{" "}
-                      {!toTokenBalance ? (
-                        <LoadingIndicator size={10} color="white" />
-                      ) : (
-                        toTokenBalance
-                      )}
+                      Balance: {!toTokenBalance ? "—" : toTokenBalance}
                     </Text>
                   </View>
                   {!loadingSecond ? (
@@ -697,13 +957,6 @@ const Swap = () => {
                       value={inputState ? getAmountOut.toString() : secondText}
                       onChangeText={async (text) => {
                         setInputState(false);
-                        // const bigText = new BigNumber(text);
-                        // const bigTen = new BigNumber(10);
-                        // const bigTenPow = bigTen.pow(
-                        //   getTokenDecimals(fromTokenIndex)
-                        // );
-                        // const result = bigText.multipliedBy(bigTenPow);
-
                         if (text.length > 0) {
                           setSecondText(text);
                         } else {
@@ -730,11 +983,15 @@ const Swap = () => {
                   >
                     <Text style={{ color: "white" }}>
                       Value:{" "}
-                      {new BigNumber(secondText)
-                        .dividedBy(
-                          new BigNumber(10 ** getTokenDecimals(toTokenIndex))
-                        )
-                        .toString()}{" "}
+                      {secondText
+                        ? new BigNumber(secondText)
+                            .dividedBy(
+                              new BigNumber(
+                                10 ** getTokenDecimals(toTokenIndex)
+                              )
+                            )
+                            .toString()
+                        : "—"}
                     </Text>
                   </View>
                 </View>
@@ -758,6 +1015,9 @@ const Swap = () => {
                       Linking.openURL(
                         "https://goerli.etherscan.io/tx/" + transactionTX
                       );
+                    }}
+                    style={{
+                      marginTop: 30,
                     }}
                   >
                     <Text style={styles.txStyle}>Latest Transaction:</Text>
@@ -797,7 +1057,11 @@ const Swap = () => {
                             swapExactTokensForTokens();
                           } else {
                             if (tokenNames[fromTokenIndex] === "ETH") {
-                              swapETHForExactTokens();
+                              if (inputState) {
+                                // swapExactETHForTokens();
+                              } else {
+                                swapETHForExactTokens();
+                              }
                             } else {
                               swapTokensForExactTokens();
                             }
@@ -872,6 +1136,76 @@ const Swap = () => {
 export default Swap;
 
 const styles = StyleSheet.create({
+  tokenName: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#000000",
+    textAlign: "center",
+  },
+  top: {
+    width: 350,
+    paddingLeft: 20,
+    paddingRight: 20,
+    height: 50,
+    marginTop: 20,
+    backgroundColor: "#d3d3d3",
+    borderTopEndRadius: 10,
+    borderTopStartRadius: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  bottom: {
+    width: 350,
+    paddingLeft: 20,
+    paddingRight: 20,
+    height: 50,
+    backgroundColor: "#d3d3d3",
+    borderBottomEndRadius: 10,
+    borderBottomStartRadius: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  flexView: {
+    flex: 1,
+    backgroundColor: "white",
+  },
+  modal: {
+    justifyContent: "flex-end",
+    margin: 0,
+  },
+  modalContent: {
+    backgroundColor: "#ffffff",
+    paddingTop: 12,
+    paddingHorizontal: 12,
+    borderTopRightRadius: 20,
+    borderTopLeftRadius: 20,
+    minHeight: 500,
+    paddingBottom: 20,
+  },
+  center: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  barIcon: {
+    width: 60,
+    height: 5,
+    backgroundColor: "#bbb",
+    borderRadius: 3,
+  },
+  text: {
+    color: "#020202",
+    fontSize: 24,
+    marginTop: 100,
+  },
+  btnContainer: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 500,
+  },
   liqContainer: {
     backgroundColor: "#444",
     borderBottomEndRadius: 20,
@@ -936,7 +1270,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   headerText: {
-    fontSize: 30,
+    fontSize: 28,
+    marginRight: 20,
     fontWeight: "bold",
     color: "white",
   },

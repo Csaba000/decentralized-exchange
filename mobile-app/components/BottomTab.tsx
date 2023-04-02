@@ -3,13 +3,29 @@ import React from "react";
 import Home from "../pages/Home";
 import Settings from "../pages/Settings";
 import Icon from "react-native-vector-icons/Ionicons";
-import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import { createStackNavigator } from "@react-navigation/stack";
 import Swap from "../pages/Swap";
 import Liquidity from "../pages/Liquidity";
+import RemoveLiquidity from "../pages/RemoveLiqudity";
 
 const Tab = createBottomTabNavigator();
 
-const HomeNav = createMaterialTopTabNavigator();
+const Stack = createStackNavigator();
+
+function StackNavigator() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="Swap"
+        options={{
+          headerShown: false,
+        }}
+        component={Swap}
+      />
+      <Stack.Screen name="Remove Liquidity" component={RemoveLiquidity} />
+    </Stack.Navigator>
+  );
+}
 
 const MyTabs = () => {
   return (
@@ -37,10 +53,9 @@ const MyTabs = () => {
           ),
         }}
       />
-
       <Tab.Screen
         name="Trade"
-        component={Swap}
+        component={StackNavigator}
         options={{
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
