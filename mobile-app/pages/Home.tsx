@@ -24,30 +24,125 @@ import LoadingIndicator from "../components/LoadingIndicator/LoadingIndicator";
 import axios from "axios";
 
 const Home = () => {
-  // const { coins, loading } = useCoinsApi();
+  const [coins, setCoins] = useState<any>([]);
+  const [loading, setLoading] = useState(false);
 
-  // if (loading) {
-  //   return (
-  //     <View style={styles.flex}>
-  //       <LoadingIndicator size={"large"} />
-  //     </View>
-  //   );
-  // }
+  useEffect(() => {
+    setLoading(true);
+    const get = async () => {
+      await axios
+        .get(
+          "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false"
+        )
+        .then((response) => {
+          setCoins(response.data);
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    };
+    get();
+    setLoading(false);
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.flex}>
+        <LoadingIndicator size={"large"} />
+      </View>
+    );
+  }
 
   const renderItem = ({ item }: any) => (
     <View
       style={{
+        paddingLeft: 20,
         backgroundColor: "white",
-        width: "95%",
-        borderRadius: 20,
-        margin: 20,
+        width: 320,
+        borderRadius: 10,
+        margin: 10,
         height: 80,
       }}
     >
-      <Text>{item.name}</Text>
-      <Text>{item.symbol}</Text>
-      <Text>{item.current_price}</Text>
-      <Image style={{ width: 50, height: 50 }} source={{ uri: item.image }} />
+      <View
+        style={{
+          flexDirection: "row",
+        }}
+      >
+        <View
+          style={{
+            marginTop: 15,
+          }}
+        >
+          <Image
+            style={{ width: 50, height: 50 }}
+            source={{ uri: item.image }}
+          />
+        </View>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            width: "75%",
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "column",
+              justifyContent: "center",
+              marginLeft: 10,
+              marginTop: 10,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "500",
+              }}
+            >
+              {item.name}
+            </Text>
+            <Text
+              style={{
+                marginTop: 5,
+                fontSize: 12,
+                opacity: 0.5,
+              }}
+            >
+              {item.symbol.toUpperCase()}
+            </Text>
+          </View>
+          <View
+            style={{
+              flexDirection: "column",
+              justifyContent: "center",
+              marginTop: 8,
+            }}
+          >
+            <Text
+              style={{
+                marginTop: 5,
+                fontSize: 16,
+                fontWeight: "500",
+                textAlign: "right",
+              }}
+            >
+              {item.current_price.toFixed(2)}
+            </Text>
+            <Text
+              style={{
+                marginTop: 5,
+                fontSize: 12,
+                opacity: 0.5,
+                fontWeight: "600",
+                textAlign: "right",
+              }}
+            >
+              {item.price_change_percentage_24h.toFixed(3)}%
+            </Text>
+          </View>
+        </View>
+      </View>
     </View>
   );
 
@@ -56,12 +151,12 @@ const Home = () => {
       <Header title="Dex" />
       <View style={styles.pageContainer}>
         <View style={styles.cardContainer}>
-          {/* <FlatList
+          <FlatList
             data={coins}
             renderItem={renderItem}
             keyExtractor={(item) => item.id}
-            // pagingEnabled
-          /> */}
+            pagingEnabled
+          />
         </View>
       </View>
     </View>
@@ -101,7 +196,7 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
   },
   cardContainer: {
-    borderRadius: 20,
+    borderRadius: 8,
     height: 600,
     backgroundColor: "#333",
     width: "90%",

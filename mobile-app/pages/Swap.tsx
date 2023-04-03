@@ -156,42 +156,45 @@ const Swap = () => {
       return;
     }
 
-    if (!poolContract) {
+    if (!poolContract && !liq) {
       alert("There is no pool for this pair! Please try another pair.");
       console.log("There is no pool for this pair! Please try another pair.");
 
       return;
-    }
-    setLoadingSecond(true);
+    } else if ((liq && poolContract) || (poolContract && !liq)) {
+      setLoadingSecond(true);
 
-    const amounts = await poolContract.getReserves();
+      const amounts = await poolContract.getReserves();
 
-    var reserve1: BigNumber = amounts[0];
-    var reserve2: BigNumber = amounts[1];
+      var reserve1: BigNumber = amounts[0];
+      var reserve2: BigNumber = amounts[1];
 
-    const tokenIn = getTokenAddress(fromTokenIndex);
-    const tokenOut = getTokenAddress(toTokenIndex);
+      const tokenIn = getTokenAddress(fromTokenIndex);
+      const tokenOut = getTokenAddress(toTokenIndex);
 
-    var swapped = sort(tokenIn, tokenOut);
+      var swapped = sort(tokenIn, tokenOut);
 
-    try {
-      if (swapped) {
-        const amountOut = await routerContract.getAmountOut(
-          text,
-          reserve2,
-          reserve1
-        );
+      try {
+        if (swapped) {
+          const amountOut = await routerContract.getAmountOut(
+            text,
+            reserve2,
+            reserve1
+          );
 
-        setAmountOut(amountOut);
-      } else {
-        setAmountOut(
-          await routerContract.getAmountOut(text, reserve1, reserve2)
-        );
+          setAmountOut(amountOut);
+        } else {
+          setAmountOut(
+            await routerContract.getAmountOut(text, reserve1, reserve2)
+          );
+        }
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setLoadingSecond(false);
       }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoadingSecond(false);
+    } else {
+      return;
     }
   };
 
@@ -201,48 +204,50 @@ const Swap = () => {
       return;
     }
 
-    if (!poolContract) {
+    if (!poolContract && !liq) {
       alert("There is no pool for this pair! Please try another pair.");
       return;
-    }
+    } else if ((liq && poolContract) || (poolContract && !liq)) {
+      setLoadingFirst(true);
+      const amounts = await poolContract.getReserves();
 
-    setLoadingFirst(true);
-    const amounts = await poolContract.getReserves();
+      var reserve1: BigNumber = amounts[0];
+      var reserve2: BigNumber = amounts[1];
 
-    var reserve1: BigNumber = amounts[0];
-    var reserve2: BigNumber = amounts[1];
+      const tokenIn = getTokenAddress(fromTokenIndex);
+      const tokenOut = getTokenAddress(toTokenIndex);
 
-    const tokenIn = getTokenAddress(fromTokenIndex);
-    const tokenOut = getTokenAddress(toTokenIndex);
+      var swapped = sort(tokenIn, tokenOut);
 
-    var swapped = sort(tokenIn, tokenOut);
+      try {
+        if (swapped) {
+          const amountIn = await routerContract.getAmountIn(
+            text,
+            reserve2,
+            reserve1
+          );
 
-    try {
-      if (swapped) {
-        const amountIn = await routerContract.getAmountIn(
-          text,
-          reserve2,
-          reserve1
-        );
+          setAmountIn(amountIn);
 
-        setAmountIn(amountIn);
+          return amountIn;
+        } else {
+          const amountIn = await routerContract.getAmountIn(
+            text,
+            reserve1,
+            reserve2
+          );
+          setAmountIn(amountIn);
 
-        return amountIn;
-      } else {
-        const amountIn = await routerContract.getAmountIn(
-          text,
-          reserve1,
-          reserve2
-        );
-        setAmountIn(amountIn);
-
-        return amountIn;
+          return amountIn;
+        }
+      } catch (error) {
+        console.log(error);
+        return "0";
+      } finally {
+        setLoadingFirst(false);
       }
-    } catch (error) {
-      console.log(error);
-      return "0";
-    } finally {
-      setLoadingFirst(false);
+    } else {
+      return;
     }
   };
 
@@ -337,8 +342,6 @@ const Swap = () => {
 
     const remainingAmount = parseInt(getAmountOut) - minValue;
 
-    console.log(getAmountIn, firstText);
-
     const swapABI = iRouter.encodeFunctionData("swapExactETHForTokens", [
       Math.round(remainingAmount),
       [WETHAddress, getTokenAddress(toTokenIndex)],
@@ -351,7 +354,7 @@ const Swap = () => {
       data: swapABI,
       gasLimit: 1000000,
       nonce: await alchemyProvider.getTransactionCount(accounts[0]!),
-      value: Number(getAmountIn),
+      value: Number(firstText),
     };
 
     try {
@@ -583,20 +586,20 @@ const Swap = () => {
         getTokenAddress(fromTokenIndex),
         getTokenAddress(toTokenIndex),
         firstText,
-        parseInt(getAmountOut),
-        0,
-        0,
+        !poolContract ? secondText : Number(getAmountOut),
+        1,
+        1,
         accounts[0]!,
         deadline,
       ]);
-    } else {
+    }else {
       addLiqAbi = iRouter.encodeFunctionData("addLiquidity", [
         getTokenAddress(fromTokenIndex),
         getTokenAddress(toTokenIndex),
-        parseInt(getAmountIn),
+        !poolContract ? firstText : Number(getAmountIn),
         secondText,
-        0,
-        0,
+        1,
+        1,
         accounts[0]!,
         deadline,
       ]);
@@ -606,7 +609,7 @@ const Swap = () => {
       from: accounts[0]!,
       to: routerAddress,
       data: addLiqAbi,
-      gasLimit: 1000000,
+      gasLimit: 10000000,
       nonce: await alchemyProvider.getTransactionCount(accounts[0]!),
     };
 
@@ -682,7 +685,7 @@ const Swap = () => {
                       <Text>Bal: </Text>
                     </View>
                     <Text style={[styles.tokenName, { fontSize: 16 }]}>
-                      LP balance: {poolBalance.toFixed(4)}
+                      LP balance: {poolBalance.toFixed(6)}
                     </Text>
                     <Text>Slider value: {sliderValue}%</Text>
                   </>
@@ -863,7 +866,12 @@ const Swap = () => {
                     <TextInput
                       keyboardType="numeric"
                       editable={firstSelectedToken}
-                      value={!inputState ? getAmountIn.toString() : firstText}
+                      value={
+                        ((liq && poolContract) || (poolContract && !liq)) &&
+                        !inputState
+                          ? getAmountIn.toString()
+                          : firstText
+                      }
                       onChangeText={async (text) => {
                         setInputState(true);
                         if (text.length > 0) {
@@ -954,7 +962,12 @@ const Swap = () => {
                     <TextInput
                       keyboardType="numeric"
                       editable={secondSelectedToken}
-                      value={inputState ? getAmountOut.toString() : secondText}
+                      value={
+                        ((liq && poolContract) || (poolContract && !liq)) &&
+                        inputState
+                          ? getAmountOut.toString()
+                          : secondText
+                      }
                       onChangeText={async (text) => {
                         setInputState(false);
                         if (text.length > 0) {
@@ -1054,15 +1067,29 @@ const Swap = () => {
                       onPress={async () => {
                         if (firstText || secondText) {
                           if (inputState) {
-                            swapExactTokensForTokens();
+                            if (tokenNames[fromTokenIndex] == "ETH") {
+                              swapExactETHForTokens();
+                            }
+                            if (tokenNames[toTokenIndex] == "ETH") {
+                              swapExactTokensForETH();
+                            }
+                            if (
+                              tokenNames[fromTokenIndex] != "ETH" &&
+                              tokenNames[toTokenIndex] != "ETH"
+                            ) {
+                              swapExactTokensForTokens();
+                            }
                           } else {
-                            if (tokenNames[fromTokenIndex] === "ETH") {
-                              if (inputState) {
-                                // swapExactETHForTokens();
-                              } else {
-                                swapETHForExactTokens();
-                              }
-                            } else {
+                            if (tokenNames[fromTokenIndex] == "ETH") {
+                              swapETHForExactTokens();
+                            }
+                            if (tokenNames[toTokenIndex] == "ETH") {
+                              swapTokensForExactETH();
+                            }
+                            if (
+                              tokenNames[fromTokenIndex] != "ETH" &&
+                              tokenNames[toTokenIndex] != "ETH"
+                            ) {
                               swapTokensForExactTokens();
                             }
                           }
