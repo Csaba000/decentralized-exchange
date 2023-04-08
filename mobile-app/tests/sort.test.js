@@ -12,15 +12,15 @@ function sort(tokenA, tokenB) {
 
 describe("sort", () => {
   it("should sort tokens correctly", () => {
-    const tokenA = "0x123";
-    const tokenB = "0x456";
+    const tokenA = "0x323";
+    const tokenB = "0x556";
     const [firstToken, secondToken, isSecondTokenLarger] = sort(tokenA, tokenB);
 
     const a = new BigNumber(tokenA.slice(2), 16);
     const b = new BigNumber(tokenB.slice(2), 16);
 
     if (a.lt(b)) {
-      expect(firstToken).toBe(tokenA);1
+      expect(firstToken).toBe(tokenA);
       expect(secondToken).toBe(tokenB);
       expect(isSecondTokenLarger).toBe(false);
     } else {

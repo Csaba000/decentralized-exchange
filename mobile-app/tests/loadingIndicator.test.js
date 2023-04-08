@@ -1,6 +1,6 @@
 import React from "react";
 import { render } from "@testing-library/react-native";
-import LoadingIndicator from "./LoadingIndicator";
+import LoadingIndicator from "../components/LoadingIndicator/LoadingIndicator";
 
 describe("LoadingIndicator", () => {
   const randomSize = Math.floor(Math.random() * 100);
