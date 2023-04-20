@@ -609,7 +609,7 @@ const Swap = () => {
       from: accounts[0]!,
       to: routerAddress,
       data: addLiqAbi,
-      gasLimit: 10,
+      gasLimit: 100000000,
       nonce: await alchemyProvider.getTransactionCount(accounts[0]!),
     };
 
