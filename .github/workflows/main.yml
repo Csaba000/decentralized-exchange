@@ -7,16 +7,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - name: CD mobile-app
-        working-directory: ./mobile-app
-        run: cd "$(dirname ${0})"
-
-      - name: list
-        run: ls
 
       - name: Package install
         working-directory: ./mobile-app
         run: npm install --force
 
       - name: Tests
+        working-directory: ./mobile-app
         run: npm test
