@@ -4,6 +4,7 @@ Introduction
 This decentralized exchange app is built on top of a blockchain network and allows users to trade digital assets in a decentralized and trustless manner. The app is built using React Native, which is a popular framework for building mobile apps.
 Prerequisites
 To run this app, you need to have the following software installed on your computer:
+
 •	Node.js
 •	React Native CLI
 •	Android Studio (for Android development) or Xcode (for iOS development)
