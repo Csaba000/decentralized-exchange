@@ -1,5 +1,7 @@
 name: Unit Tests
 
+on: [push]
+
 jobs:
   Jest:
     runs-on: ubuntu-latest
