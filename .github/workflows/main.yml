@@ -15,6 +15,7 @@ jobs:
         run: ls
 
       - name: Package install
+        working-directory: ./mobile-app
         run: npm install
 
       - name: Tests
