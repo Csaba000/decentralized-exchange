@@ -3,8 +3,8 @@ import abiPool from "../contract/abiPool.json";
 
 describe("getReserves function", () => {
   let contract;
-  const token1Reserve = "1014334013426672082"; // 1.014334013426672082
-  const token2Reserve = "141733722072185"; // 0.000141733722072185
+  const token1Reserve = "1014334013426664948"; // 1.014334013426672082
+  const token2Reserve = "141733722092157"; // 0.000141733722072185
 
   beforeAll(async () => {
     const AlchemyProvider = new ethers.providers.JsonRpcProvider(
