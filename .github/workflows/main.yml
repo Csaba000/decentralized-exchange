@@ -7,9 +7,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - name: Run Tests
-        run: 
-          npm install 
-	        cd mobile-app
-          npm install
-          npm test
+      - name: CD mobile-app
+        run: cd mobile-app
+
+      - name: Package install
+        run: npm install
+
+      - name: Tests
+        run: npm test
