@@ -16,7 +16,7 @@ jobs:
 
       - name: Package install
         working-directory: ./mobile-app
-        run: npm install
+        run: npm install --force
 
       - name: Tests
         run: npm test
