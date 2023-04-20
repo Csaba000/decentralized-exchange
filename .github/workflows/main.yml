@@ -9,6 +9,9 @@ jobs:
       - uses: actions/checkout@v1
       - name: CD mobile-app
         run: cd mobile-app
+        
+      - name: list
+      - run: ls
 
       - name: Package install
         run: npm install
