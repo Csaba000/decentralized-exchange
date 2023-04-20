@@ -10,5 +10,6 @@ jobs:
       - name: Run Tests
         run: |
           npm install 
-	  cd mobile-app
+	        cd mobile-app
+          npm install
           npm test
