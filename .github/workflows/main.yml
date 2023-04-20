@@ -7,11 +7,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+
       - name: CD mobile-app
         run: cd mobile-app
-        
+
       - name: list
-      - run: ls
+        run: ls
 
       - name: Package install
         run: npm install
