@@ -7,12 +7,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-
       - name: CD mobile-app
+        working-directory: ./mobile-app
         run: cd "$(dirname ${0})"
-
-      - name: CD mobile-app
-        run: cd "$(mobile-app ${0})"
 
       - name: list
         run: ls
