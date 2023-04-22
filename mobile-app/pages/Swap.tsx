@@ -592,7 +592,7 @@ const Swap = () => {
         accounts[0]!,
         deadline,
       ]);
-    }else {
+    } else {
       addLiqAbi = iRouter.encodeFunctionData("addLiquidity", [
         getTokenAddress(fromTokenIndex),
         getTokenAddress(toTokenIndex),
@@ -609,7 +609,7 @@ const Swap = () => {
       from: accounts[0]!,
       to: routerAddress,
       data: addLiqAbi,
-      gasLimit: 100000000,
+      gasLimit: 10_000_000,
       nonce: await alchemyProvider.getTransactionCount(accounts[0]!),
     };
 
@@ -646,6 +646,88 @@ const Swap = () => {
     if (fromTokenIndex !== 0) checkApprovalFrom();
     if (toTokenIndex !== 0) checkApprovalTo();
   }, [fromTokenIndex, toTokenIndex, fromApprove, toApprove]);
+
+  const checkIfError = () => {
+    if (liq) {
+      if (firstText !== "" && poolContract) {
+        if (Number(firstText) < 1100 || Number(getAmountOut) < 1100) {
+          return true;
+        }
+      }
+
+      if (secondText !== "" && poolContract) {
+        if (Number(secondText) < 1100 || Number(getAmountIn) < 1100) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  //TODO - fix remove liquidity math error
+  const removeLiquidity = async () => {
+    const poolDecimals = await poolContract.decimals();
+
+    const tenInBigNumber = new BigNumber(10);
+    const poolBalanceInBigNumber = new BigNumber(poolBalance);
+
+    const poolDecimalInBigNumber = tenInBigNumber.pow(poolDecimals);
+
+    const poolBigNumberResult = poolDecimalInBigNumber.multipliedBy(
+      poolBalanceInBigNumber
+    );
+
+    const result = poolBigNumberResult.multipliedBy(sliderValue / 100);
+    console.log(result.toFixed(0));
+    console.log(poolBalance);
+
+    const iRouter = new ethers.utils.Interface(abiRouter);
+
+    const deadline = Math.floor(Date.now() / 1000) + 60 * Number(stateDeadline);
+    let removeLiqAbi = "";
+
+    const swapped = sort(
+      getTokenAddress(fromTokenIndex),
+      getTokenAddress(toTokenIndex)
+    );
+
+    if (swapped) {
+      removeLiqAbi = iRouter.encodeFunctionData("removeLiquidity", [
+        getTokenAddress(toTokenIndex),
+        getTokenAddress(fromTokenIndex),
+        result.toFixed(0),
+        1,
+        1,
+        accounts[0]!,
+        deadline,
+      ]);
+    } else {
+      removeLiqAbi = iRouter.encodeFunctionData("removeLiquidity", [
+        getTokenAddress(fromTokenIndex),
+        getTokenAddress(toTokenIndex),
+        result.toFixed(0),
+        1,
+        1,
+        accounts[0]!,
+        deadline,
+      ]);
+    }
+
+    const tx = {
+      from: accounts[0]!,
+      to: routerAddress,
+      data: removeLiqAbi,
+      gasLimit: 10_000_000,
+      nonce: await alchemyProvider.getTransactionCount(accounts[0]!),
+    };
+    try {
+      const send = connector.sendTransaction(tx);
+      console.log("Transaction hash: ", await send);
+      setTransactionTX(await send);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   return (
     <>
@@ -735,6 +817,7 @@ const Swap = () => {
                     title="Remove liquidity"
                     onPress={() => {
                       getPoolTokenBalance();
+                      removeLiquidity();
                     }}
                   />
                 </View>
@@ -762,7 +845,6 @@ const Swap = () => {
               <View
                 style={{
                   flexDirection: "row",
-                  // justifyContent: "space-between",
                   width: "100%",
                 }}
               >
@@ -900,11 +982,14 @@ const Swap = () => {
                   >
                     <Text style={{ color: "white" }}>
                       Value:{" "}
-                      {firstText
-                        ? new BigNumber(firstText)
+                      {firstText || getAmountIn
+                        ? new BigNumber(
+                            inputState ? Number(firstText) : Number(getAmountIn)
+                          )
                             .dividedBy(
                               new BigNumber(
-                                10 ** getTokenDecimals(fromTokenIndex)
+                                10 ** getTokenDecimals(fromTokenIndex) ||
+                                  10 ** 18
                               )
                             )
                             .toString()
@@ -996,11 +1081,13 @@ const Swap = () => {
                   >
                     <Text style={{ color: "white" }}>
                       Value:{" "}
-                      {secondText
-                        ? new BigNumber(secondText)
+                      {secondText || getAmountOut
+                        ? new BigNumber(
+                            Number(!inputState ? secondText : getAmountOut)
+                          )
                             .dividedBy(
                               new BigNumber(
-                                10 ** getTokenDecimals(toTokenIndex)
+                                10 ** getTokenDecimals(toTokenIndex) || 10 ** 18
                               )
                             )
                             .toString()
@@ -1022,6 +1109,13 @@ const Swap = () => {
             )}
             {connected ? (
               <>
+                {checkIfError() ? (
+                  <Text style={styles.txStyle}>
+                    Error: Insufficient liquidity (MIN: 1100)
+                  </Text>
+                ) : (
+                  <></>
+                )}
                 {transactionTX.length > 0 ? (
                   <TouchableOpacity
                     onPress={() => {
@@ -1051,6 +1145,7 @@ const Swap = () => {
                   (fromApprove && toApprove)) ? (
                   liq ? (
                     <CustomButton
+                      disabled={checkIfError()}
                       title="Add liquidity"
                       onPress={() => {
                         if (firstText || secondText) {
