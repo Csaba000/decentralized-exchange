@@ -122,9 +122,41 @@ const Swap = () => {
 
   const [sliderValue, setSliderValue] = useState(0);
 
+  const [poolAllowance, setPoolAllowance] = useState(false);
+
   const toggleModal = () => {
     setIsModalVisible(!isModalVisible);
   };
+
+  useEffect(() => {
+    if (poolContract) {
+      const getAllowance = async () => {
+        const allowance = await poolContract.allowance(
+          accounts[0]!,
+          routerAddress
+        );
+      };
+
+      let allowanceInEthTo = "";
+
+      getAllowance().then(async (res) => {
+        const allowance = await poolContract.allowance(
+          accounts[0]!,
+          routerAddress
+        );
+
+        allowanceInEthTo = ethers.utils
+          .formatUnits(allowance, getTokenDecimals(toTokenIndex))
+          .substring(0, 5);
+
+        if (allowanceInEthTo === "0.0") {
+          setPoolAllowance(false);
+        } else {
+          setPoolAllowance(true);
+        }
+      });
+    }
+  }, [poolContract]);
 
   useEffect(() => {
     if (data) {
@@ -132,6 +164,7 @@ const Swap = () => {
         data![fromTokenIndex].address,
         data![toTokenIndex].address
       );
+      setPoolAddress(data2);
       getRouterAddress();
     }
   }, [toTokenIndex, fromTokenIndex]);
@@ -256,7 +289,7 @@ const Swap = () => {
   const tokenIds = getTokenNames().map((token: any) => token.id);
   const tokenDecimals = getTokenNames().map((token: any) => token.decimals);
 
-  const getTokenAddress = (tokenId: number) => {
+  const getTokenAddress = (tokenId: number): string => {
     return tokenAddresses[tokenIds.indexOf(tokenId)];
   };
 
@@ -609,7 +642,7 @@ const Swap = () => {
       from: accounts[0]!,
       to: routerAddress,
       data: addLiqAbi,
-      gasLimit: 10_000_000,
+      gasLimit: 2_000_000,
       nonce: await alchemyProvider.getTransactionCount(accounts[0]!),
     };
 
@@ -664,9 +697,19 @@ const Swap = () => {
     return false;
   };
 
-  //TODO - fix remove liquidity math error
   const removeLiquidity = async () => {
     const poolDecimals = await poolContract.decimals();
+
+    const allowance = await poolContract.allowance(accounts[0]!, routerAddress);
+
+    const allowanceInEthTo = ethers.utils
+      .formatUnits(allowance, getTokenDecimals(toTokenIndex))
+      .substring(0, 5);
+
+    if (allowanceInEthTo === "0.0") {
+      setPoolAllowance(false);
+      return;
+    }
 
     const tenInBigNumber = new BigNumber(10);
     const poolBalanceInBigNumber = new BigNumber(poolBalance);
@@ -678,8 +721,7 @@ const Swap = () => {
     );
 
     const result = poolBigNumberResult.multipliedBy(sliderValue / 100);
-    console.log(result.toFixed(0));
-    console.log(poolBalance);
+    const resultFixed = result.toFixed(0);
 
     const iRouter = new ethers.utils.Interface(abiRouter);
 
@@ -695,7 +737,7 @@ const Swap = () => {
       removeLiqAbi = iRouter.encodeFunctionData("removeLiquidity", [
         getTokenAddress(toTokenIndex),
         getTokenAddress(fromTokenIndex),
-        result.toFixed(0),
+        resultFixed,
         1,
         1,
         accounts[0]!,
@@ -705,7 +747,7 @@ const Swap = () => {
       removeLiqAbi = iRouter.encodeFunctionData("removeLiquidity", [
         getTokenAddress(fromTokenIndex),
         getTokenAddress(toTokenIndex),
-        result.toFixed(0),
+        resultFixed,
         1,
         1,
         accounts[0]!,
@@ -717,13 +759,39 @@ const Swap = () => {
       from: accounts[0]!,
       to: routerAddress,
       data: removeLiqAbi,
-      gasLimit: 10_000_000,
+      gasLimit: 2_000_000,
       nonce: await alchemyProvider.getTransactionCount(accounts[0]!),
     };
     try {
       const send = connector.sendTransaction(tx);
       console.log("Transaction hash: ", await send);
       setTransactionTX(await send);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const approvePool = async () => {
+    const iRouter = new ethers.utils.Interface(abiErc20);
+
+    const approveABI = iRouter.encodeFunctionData("approve", [
+      routerAddress,
+      "0xffffffffffff",
+    ]);
+
+    const tx = {
+      from: accounts[0]!,
+      to: poolAddress,
+      data: approveABI,
+      gasLimit: 100_000,
+      nonce: await alchemyProvider.getTransactionCount(accounts[0]!),
+    };
+
+    try {
+      const send = connector.sendTransaction(tx);
+      console.log("Transaction hash: ", await send);
+      setTransactionTX(await send);
+      setPoolAllowance(true);
     } catch (error) {
       console.log(error);
     }
@@ -810,14 +878,25 @@ const Swap = () => {
                 <View
                   style={{
                     position: "absolute",
-                    top: 400,
+                    top: 330,
                   }}
                 >
+                  {!poolAllowance && (
+                    <CustomButton
+                      title="Approve pool"
+                      onPress={() => {
+                        approvePool();
+                        toggleModal();
+                      }}
+                    />
+                  )}
                   <CustomButton
+                    disabled={!poolAllowance}
                     title="Remove liquidity"
                     onPress={() => {
                       getPoolTokenBalance();
                       removeLiquidity();
+                      toggleModal();
                     }}
                   />
                 </View>
