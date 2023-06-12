@@ -15,6 +15,7 @@ LogBox.ignoreLogs(["Overwriting fontFamily style attribute preprocessor"]);
 LogBox.ignoreLogs([
   `[Reanimated] Couldn't determine the version of the native part of Reanimated. Did you forget to re-build the app after upgrading react-native-reanimated? If you use Expo Go, you must use the exact version which is bundled into Expo SDK`,
 ]);
+LogBox.ignoreAllLogs();
 
 export default function App() {
   return (

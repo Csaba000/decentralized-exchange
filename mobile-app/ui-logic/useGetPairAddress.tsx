@@ -32,6 +32,7 @@ const useInitAll = () => {
         setPoolContract(
           new ethers.Contract(response.data, abiPool, alchemyProvider)
         );
+
         setData(response.data);
         return response.data;
       })

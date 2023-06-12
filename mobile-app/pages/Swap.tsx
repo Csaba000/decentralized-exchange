@@ -10,6 +10,7 @@ import {
   ScrollView,
   RefreshControl,
   Switch,
+  ActivityIndicator,
 } from "react-native";
 import SelectDropdown from "react-native-select-dropdown";
 import Icon from "react-native-vector-icons/Ionicons";
@@ -87,7 +88,7 @@ const Swap = () => {
 
   const connector = useWalletConnect();
 
-  const [poolAddress, setPoolAddress] = useState("");
+  const [poolAddress, setPoolAddress] = useState(data2);
   //first inputField => true, second inputField => false
   const [inputState, setInputState] = useState(false);
 
@@ -99,6 +100,12 @@ const Swap = () => {
 
   const debouncedValueFirst = useDebounce<string>(firstText, 500);
   const debouncedValueSecond = useDebounce<string>(secondText, 500);
+
+  const [loadingBalanceToken0, setLoadingBalanceToken0] = useState(false);
+  const [loadingBalanceToken1, setLoadingBalanceToken1] = useState(false);
+
+  const debounceTokenBalance0 = useDebounce(loadingBalanceToken0, 500);
+  const debounceTokenBalance1 = useDebounce(loadingBalanceToken1, 500);
 
   const [getAmountOut, setAmountOut] = useState("");
   const [getAmountIn, setAmountIn] = useState("");
@@ -123,6 +130,9 @@ const Swap = () => {
   const [sliderValue, setSliderValue] = useState(0);
 
   const [poolAllowance, setPoolAllowance] = useState(false);
+
+  const [token0BalanceInPool, setToken0BalanceInPool] = useState("");
+  const [token1BalanceInPool, setToken1BalanceInPool] = useState("");
 
   const toggleModal = () => {
     setIsModalVisible(!isModalVisible);
@@ -160,14 +170,15 @@ const Swap = () => {
 
   useEffect(() => {
     if (data) {
-      getPairAddress(
+      const poolAdd = getPairAddress(
         data![fromTokenIndex].address,
         data![toTokenIndex].address
       );
-      setPoolAddress(data2);
+
+      setPoolAddress(poolAdd);
       getRouterAddress();
     }
-  }, [toTokenIndex, fromTokenIndex]);
+  }, [data, toTokenIndex, fromTokenIndex]);
 
   useEffect(() => {
     const inti = async () => {
@@ -776,14 +787,14 @@ const Swap = () => {
 
     const approveABI = iRouter.encodeFunctionData("approve", [
       routerAddress,
-      "0xffffffffffff",
+      ethers.constants.MaxUint256,
     ]);
 
     const tx = {
       from: accounts[0]!,
-      to: poolAddress,
+      to: data2,
       data: approveABI,
-      gasLimit: 100_000,
+      gasLimit: 200_0000,
       nonce: await alchemyProvider.getTransactionCount(accounts[0]!),
     };
 
@@ -796,6 +807,86 @@ const Swap = () => {
       console.log(error);
     }
   };
+
+  const calculateTokenBalances = async () => {
+    setLoadingBalanceToken0(true);
+    setLoadingBalanceToken1(true);
+    const poolDecimals = await poolContract.decimals();
+    const token0Address = getTokenAddress(fromTokenIndex);
+    const token1Address = getTokenAddress(toTokenIndex);
+
+    const contractToken0 = new ethers.Contract(
+      token0Address,
+      abiErc20,
+      alchemyProvider
+    );
+
+    const contractToken1 = new ethers.Contract(
+      token1Address,
+      abiErc20,
+      alchemyProvider
+    );
+
+    const tenInBigNumber = new BigNumber(10);
+    const poolBalanceInBigNumber = new BigNumber(poolBalance);
+
+    const poolDecimalInBigNumber = tenInBigNumber.pow(poolDecimals);
+
+    const poolBigNumberResult = poolDecimalInBigNumber.multipliedBy(
+      poolBalanceInBigNumber
+    );
+
+    const result = poolBigNumberResult.multipliedBy(sliderValue / 100);
+    const resultFixed = result.toFixed(0);
+
+    const token0Balance = await contractToken0.balanceOf(data2);
+    const token1Balance = await contractToken1.balanceOf(data2);
+
+    const token0BalanceInBigNumber = new BigNumber(token0Balance.toString());
+    const token1BalanceInBigNumber = new BigNumber(token1Balance.toString());
+
+    const totalSupply = await poolContract.totalSupply();
+
+    const totalSupplyInBigNumber = new BigNumber(totalSupply.toString());
+
+    const resultFixedInBigNumber = new BigNumber(resultFixed, 10);
+
+    const amount0 = resultFixedInBigNumber
+      .multipliedBy(token0BalanceInBigNumber)
+      .dividedBy(totalSupplyInBigNumber);
+
+    const amount1 = resultFixedInBigNumber
+      .multipliedBy(token1BalanceInBigNumber)
+      .dividedBy(totalSupplyInBigNumber);
+
+    const token0Decimal = getTokenDecimals(fromTokenIndex);
+    const token1Decimal = getTokenDecimals(toTokenIndex);
+
+    const tenInBigNumberToken0 = new BigNumber(10);
+    const tenInBigNumberToken1 = new BigNumber(10);
+
+    setToken0BalanceInPool(
+      amount0.dividedBy(tenInBigNumberToken0.pow(token0Decimal)).toFixed(5)
+    );
+    setToken1BalanceInPool(
+      amount1.dividedBy(tenInBigNumberToken1.pow(token1Decimal)).toFixed(5)
+    );
+
+    setLoadingBalanceToken0(false);
+    setLoadingBalanceToken1(false);
+  };
+
+  useEffect(() => {
+    if (data2 && firstSelectedToken && secondSelectedToken && isModalVisible) {
+      calculateTokenBalances();
+    }
+  }, [
+    data2,
+    firstSelectedToken,
+    secondSelectedToken,
+    sliderValue,
+    isModalVisible,
+  ]);
 
   return (
     <>
@@ -826,18 +917,33 @@ const Swap = () => {
                       <Text style={styles.tokenName}>
                         {getTokenName(fromTokenIndex)}
                       </Text>
-                      <Text>Bal: </Text>
+                      {debounceTokenBalance0 ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={{ fontWeight: "bold" }}>
+                          {" "}
+                          {token0BalanceInPool}
+                        </Text>
+                      )}
                     </View>
                     <View style={styles.bottom}>
                       <Text style={styles.tokenName}>
                         {getTokenName(toTokenIndex)}
                       </Text>
-                      <Text>Bal: </Text>
+                      {debounceTokenBalance1 ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <>
+                          <Text style={{ fontWeight: "bold" }}>
+                            {token1BalanceInPool}
+                          </Text>
+                        </>
+                      )}
                     </View>
                     <Text style={[styles.tokenName, { fontSize: 16 }]}>
                       LP balance: {poolBalance.toFixed(6)}
                     </Text>
-                    <Text>Slider value: {sliderValue}%</Text>
+                    <Text>Value: {sliderValue.toFixed(0)}%</Text>
                   </>
                 ) : (
                   <View
@@ -881,7 +987,7 @@ const Swap = () => {
                     top: 330,
                   }}
                 >
-                  {!poolAllowance && (
+                  {!poolAllowance && !!data2 && (
                     <CustomButton
                       title="Approve pool"
                       onPress={() => {
