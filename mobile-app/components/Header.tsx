@@ -24,12 +24,6 @@ const Header: React.FC<Props> = ({ navigation, title, iconName }) => {
             <Ionicons name={iconName} size={24} color="black" />
           </TouchableOpacity>
         </View>
-
-        <View style={styles.searchIcon}>
-          <TouchableOpacity onPress={() => alert("Search")}>
-            <Ionicons name="ios-search" size={24} color="black" />
-          </TouchableOpacity>
-        </View>
       </View>
     </View>
   );
