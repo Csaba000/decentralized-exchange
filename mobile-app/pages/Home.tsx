@@ -22,10 +22,13 @@ import Header from "../components/Header";
 import useCoinsApi from "../ui-logic/useCoinsApi";
 import LoadingIndicator from "../components/LoadingIndicator/LoadingIndicator";
 import axios from "axios";
+import CoinItems from "../components/CoinItems";
+import { useNavigation } from "@react-navigation/native";
 
 const Home = () => {
   const [coins, setCoins] = useState<any>([]);
   const [loading, setLoading] = useState(false);
+  const navigation = useNavigation<any>();
 
   useEffect(() => {
     setLoading(true);
@@ -53,99 +56,6 @@ const Home = () => {
     );
   }
 
-  const renderItem = ({ item }: any) => (
-    <View
-      style={{
-        paddingLeft: 20,
-        backgroundColor: "white",
-        width: 320,
-        borderRadius: 10,
-        margin: 10,
-        height: 80,
-      }}
-    >
-      <View
-        style={{
-          flexDirection: "row",
-        }}
-      >
-        <View
-          style={{
-            marginTop: 15,
-          }}
-        >
-          <Image
-            style={{ width: 50, height: 50 }}
-            source={{ uri: item.image }}
-          />
-        </View>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            width: "75%",
-          }}
-        >
-          <View
-            style={{
-              flexDirection: "column",
-              justifyContent: "center",
-              marginLeft: 10,
-              marginTop: 10,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "500",
-              }}
-            >
-              {item.name}
-            </Text>
-            <Text
-              style={{
-                marginTop: 5,
-                fontSize: 12,
-                opacity: 0.5,
-              }}
-            >
-              {item.symbol.toUpperCase()}
-            </Text>
-          </View>
-          <View
-            style={{
-              flexDirection: "column",
-              justifyContent: "center",
-              marginTop: 8,
-            }}
-          >
-            <Text
-              style={{
-                marginTop: 5,
-                fontSize: 16,
-                fontWeight: "500",
-                textAlign: "right",
-              }}
-            >
-              {item.current_price.toFixed(2)}
-            </Text>
-            <Text
-              style={{
-                marginTop: 5,
-                fontSize: 12,
-                opacity: 0.5,
-                fontWeight: "600",
-                textAlign: "right",
-              }}
-            >
-              {item.price_change_percentage_24h.toFixed(3)}%
-            </Text>
-          </View>
-        </View>
-      </View>
-    </View>
-  );
-
   return (
     <View style={styles.container}>
       <Header title="Dex" />
@@ -153,7 +63,9 @@ const Home = () => {
         <View style={styles.cardContainer}>
           <FlatList
             data={coins}
-            renderItem={renderItem}
+            renderItem={({ item }) => {
+              return <CoinItems coin={item} />;
+            }}
             keyExtractor={(item) => item.id}
             pagingEnabled
           />

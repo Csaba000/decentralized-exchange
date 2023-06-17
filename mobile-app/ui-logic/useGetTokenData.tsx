@@ -11,6 +11,7 @@ type Token = {
 
 const useGetTokenData = () => {
   const [data, setData] = useState<Token[]>();
+  const [errors, setErrors] = useState<any>(null);
   let tokens: any = [];
 
   useEffect(() => {
@@ -21,6 +22,7 @@ const useGetTokenData = () => {
       })
       .catch(function (error) {
         console.log("ERROR", error);
+        setErrors(error);
       });
   }, []);
 
@@ -38,7 +40,7 @@ const useGetTokenData = () => {
     return tokens;
   };
 
-  return { data, getTokenNames };
+  return { data,errors, getTokenNames };
 };
 
 export default useGetTokenData;

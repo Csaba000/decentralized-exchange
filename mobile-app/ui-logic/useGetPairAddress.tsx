@@ -8,6 +8,7 @@ import { URL } from "../utils/constants";
 
 const useInitAll = () => {
   const [data2, setData] = useState<any>();
+  const [errors, setErrors] = useState<any>(null);
   const [poolContract, setPoolContract] = useState<any>();
   const [routerContract, setRouterContract] = useState<any>();
   const { alchemyProvider } = useAlchemyProvider();
@@ -39,6 +40,7 @@ const useInitAll = () => {
       .catch(function (error) {
         console.log("ERROR", error.message);
         setPoolContract(null);
+        setErrors(error.message);
       });
   };
 
@@ -46,6 +48,7 @@ const useInitAll = () => {
     data2,
     poolContract,
     routerContract,
+    errors,
     getPairAddress,
     getRouterAddress,
   };

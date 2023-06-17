@@ -7,6 +7,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import Swap from "../pages/Swap";
 import Liquidity from "../pages/Liquidity";
 import RemoveLiquidity from "../pages/RemoveLiqudity";
+import CoinDetails from "../pages/CoinDetails";
 
 const Tab = createBottomTabNavigator();
 
@@ -16,13 +17,15 @@ function StackNavigator() {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="Swap"
+        name="HomeScreen"
+        component={Home}
         options={{
           headerShown: false,
         }}
-        component={Swap}
       />
-      <Stack.Screen name="Remove Liquidity" component={RemoveLiquidity} />
+      <Stack.Screen name="CoinDetails" component={CoinDetails} options={{
+        headerTitle: "Coin Details",
+      }}/>
     </Stack.Navigator>
   );
 }
@@ -45,7 +48,7 @@ const MyTabs = () => {
     >
       <Tab.Screen
         name="Home"
-        component={Home}
+        component={StackNavigator}
         options={{
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
@@ -54,8 +57,8 @@ const MyTabs = () => {
         }}
       />
       <Tab.Screen
-        name="Trade"
-        component={StackNavigator}
+        name="Swap"
+        component={Swap}
         options={{
           headerShown: false,
           tabBarIcon: ({ color, size }) => (

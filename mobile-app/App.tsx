@@ -11,6 +11,7 @@ import { StatusBar } from "expo-status-bar";
 
 import { ModalProvider } from "./context/ModalProvider";
 import { LogBox } from "react-native";
+import { useRef } from "react";
 LogBox.ignoreLogs(["Overwriting fontFamily style attribute preprocessor"]);
 LogBox.ignoreLogs([
   `[Reanimated] Couldn't determine the version of the native part of Reanimated. Did you forget to re-build the app after upgrading react-native-reanimated? If you use Expo Go, you must use the exact version which is bundled into Expo SDK`,
@@ -18,6 +19,8 @@ LogBox.ignoreLogs([
 LogBox.ignoreAllLogs();
 
 export default function App() {
+  const navigatorRef = useRef(null);
+
   return (
     <WalletConnectProvider
       redirectUrl={`wmw://app`}
@@ -26,7 +29,7 @@ export default function App() {
       }}
     >
       <ModalProvider>
-        <NavigationContainer>
+        <NavigationContainer ref={navigatorRef}>
           <BottomTab />
           <StatusBar style="auto" />
         </NavigationContainer>
