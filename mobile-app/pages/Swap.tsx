@@ -387,7 +387,7 @@ const Swap = () => {
     const remainingAmount = parseInt(getAmountOut) - minValue;
 
     const swapABI = iRouter.encodeFunctionData("swapExactETHForTokens", [
-      Math.round(remainingAmount),
+      Math.round(remainingAmount).toString(),
       [WETHAddress, getTokenAddress(toTokenIndex)],
       accounts[0]!,
       deadline,
@@ -426,7 +426,7 @@ const Swap = () => {
 
     const swapABI = iRouter.encodeFunctionData("swapExactTokensForETH", [
       firstText,
-      Math.round(remainingAmount),
+      Math.round(remainingAmount).toString(),
       [getTokenAddress(fromTokenIndex), WETHAddress],
       accounts[0]!,
       deadline,
@@ -466,7 +466,7 @@ const Swap = () => {
 
     const swapABI = iRouter.encodeFunctionData("swapExactTokensForTokens", [
       firstText,
-      Math.round(remainingAmount),
+      Math.round(remainingAmount).toString(),
       [getTokenAddress(fromTokenIndex), getTokenAddress(toTokenIndex)],
       accounts[0]!,
       deadline,
@@ -505,7 +505,7 @@ const Swap = () => {
 
     const swapABI = iRouter.encodeFunctionData("swapTokensForExactETH", [
       secondText,
-      Math.round(maxValue),
+      Math.round(maxValue).toString(),
       [getTokenAddress(fromTokenIndex), WETHAddress],
       accounts[0]!,
       deadline,
@@ -544,11 +544,12 @@ const Swap = () => {
 
     const swapABI = iRouter.encodeFunctionData("swapTokensForExactTokens", [
       secondText,
-      Math.round(maxValue),
+      Math.round(maxValue).toString(),
       [getTokenAddress(fromTokenIndex), getTokenAddress(toTokenIndex)],
       accounts[0]!,
       deadline,
     ]);
+
     const tx = {
       from: accounts[0]!,
       to: routerAddress,
@@ -630,7 +631,7 @@ const Swap = () => {
         getTokenAddress(fromTokenIndex),
         getTokenAddress(toTokenIndex),
         firstText,
-        !poolContract ? secondText : Number(getAmountOut),
+        !poolContract ? secondText : getAmountOut,
         1,
         1,
         accounts[0]!,
@@ -640,7 +641,7 @@ const Swap = () => {
       addLiqAbi = iRouter.encodeFunctionData("addLiquidity", [
         getTokenAddress(fromTokenIndex),
         getTokenAddress(toTokenIndex),
-        !poolContract ? firstText : Number(getAmountIn),
+        !poolContract ? firstText : getAmountIn,
         secondText,
         1,
         1,

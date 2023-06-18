@@ -34,7 +34,17 @@ const CoinItems: FC<CoinItemsProps> = ({ coin }) => {
               <Text style={styles.priceText}>
                 {coin.current_price.toFixed(2)}
               </Text>
-              <Text style={styles.priceChangeText}>
+              <Text
+                style={[
+                  styles.priceChangeText,
+                  {
+                    color:
+                      coin.price_change_percentage_24h > 0
+                        ? "#76b628"
+                        : "#E15241",
+                  },
+                ]}
+              >
                 {coin.price_change_percentage_24h.toFixed(3)}%
               </Text>
             </View>
@@ -98,8 +108,8 @@ const styles = StyleSheet.create({
   priceChangeText: {
     marginTop: 5,
     fontSize: 12,
-    opacity: 0.5,
-    fontWeight: "600",
+    opacity: 0.7,
+    fontWeight: "700",
     textAlign: "right",
   },
 });
