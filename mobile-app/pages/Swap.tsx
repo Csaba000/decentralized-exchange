@@ -998,8 +998,16 @@ const Swap = () => {
                     />
                   )}
                   <CustomButton
-                    disabled={!poolAllowance}
-                    title="Remove liquidity"
+                    disabled={
+                      toTokenIndex === fromTokenIndex ? true : !poolAllowance
+                    }
+                    title={
+                      toTokenIndex && fromTokenIndex !== null
+                      ? toTokenIndex === fromTokenIndex
+                        ? "Same coin selected!"
+                        : "Remove liquidity"
+                      : "Select tokens"
+                    }
                     onPress={() => {
                       getPoolTokenBalance();
                       removeLiquidity();
@@ -1331,8 +1339,20 @@ const Swap = () => {
                   (fromApprove && toApprove)) ? (
                   liq ? (
                     <CustomButton
-                      disabled={checkIfError()}
-                      title="Add liquidity"
+                      disabled={
+                        toTokenIndex && fromTokenIndex !== null
+                          ? toTokenIndex === fromTokenIndex
+                            ? true
+                            : checkIfError()
+                          : true
+                      }
+                      title={
+                        toTokenIndex && fromTokenIndex !== null
+                        ? toTokenIndex === fromTokenIndex
+                          ? "Same coin selected!"
+                          : "Add Liquidity"
+                        : "Select tokens"
+                      }
                       onPress={() => {
                         if (firstText || secondText) {
                           addLiquidity();
@@ -1344,7 +1364,20 @@ const Swap = () => {
                     />
                   ) : (
                     <CustomButton
-                      title="Swap"
+                      title={
+                        toTokenIndex && fromTokenIndex !== null
+                          ? toTokenIndex === fromTokenIndex
+                            ? "Same coin selected!"
+                            : "Swap"
+                          : "Select tokens"
+                      }
+                      disabled={
+                        toTokenIndex && fromTokenIndex !== null
+                          ? toTokenIndex === fromTokenIndex
+                            ? true
+                            : false
+                          : true
+                      }
                       onPress={async () => {
                         if (firstText || secondText) {
                           if (inputState) {
